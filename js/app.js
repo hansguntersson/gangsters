@@ -21,6 +21,7 @@ function init() {
       openLocationPanel('home');
     },
     onCancelTravel: cancelTravel,
+    onResetGame: handleResetGame,
   });
 
   initMapViewport();
@@ -163,6 +164,25 @@ function centerMapOnPlayer() {
   const loc = LOCATIONS[state.player.position];
   if (!loc) return;
   centerMapOnPoint(loc.x, loc.y, true);
+}
+
+function handleResetGame() {
+  if (transitInterval) {
+    clearInterval(transitInterval);
+    transitInterval = null;
+  }
+
+  const state = getState();
+  state.player.inTransit = false;
+  state.player.transitTarget = null;
+  transitRemainingMinutes = 0;
+
+  hideTravelModal();
+  resetGame();
+  closeAllPanels();
+  switchTab('map');
+  centerMapOnPlayer();
+  renderAll();
 }
 
 function closeAllPanels() {

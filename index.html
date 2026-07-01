@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Gangster Sim</title>
+  <title>Gangsters</title>
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
   <div id="app">
-    <header id="status-bar">
+    <header id="app-header">
+      <h1 id="app-title">Gangsters</h1>
       <div id="clock-block">
         <span id="day-display">DAY 1</span>
         <span id="time-display">MON 6:00 AM</span>
@@ -17,7 +18,7 @@
         <span id="cash-display">$25</span>
         <span id="cash-label">CASH</span>
       </div>
-      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
+      <button id="menu-btn" class="icon-btn" aria-label="Menu" aria-haspopup="true">☰</button>
     </header>
 
     <main id="main-content">
@@ -65,32 +66,41 @@
       </div>
     </main>
 
-    <nav id="bottom-nav">
-      <button class="nav-btn active" data-tab="map">
-        <span class="nav-icon">◎</span>
-        <span class="nav-label">MAP</span>
-      </button>
-      <button class="nav-btn" data-tab="people">
-        <span class="nav-icon">☺</span>
-        <span class="nav-label">PEOPLE</span>
-      </button>
-      <button class="nav-btn" data-tab="jobs">
-        <span class="nav-icon">▣</span>
-        <span class="nav-label">JOBS</span>
-      </button>
-      <button class="nav-btn" data-tab="log">
-        <span class="nav-icon">≡</span>
-        <span class="nav-label">LOG</span>
-      </button>
-    </nav>
+    <footer id="bottom-chrome">
+      <div id="time-controls" role="group" aria-label="Time speed">
+        <button class="speed-btn" data-speed="0" title="Pause">||</button>
+        <button class="speed-btn active" data-speed="1" title="Normal speed">&gt;</button>
+        <button class="speed-btn" data-speed="2" title="Double speed">&gt;&gt;</button>
+        <button class="speed-btn" data-speed="3" title="Triple speed">&gt;&gt;&gt;</button>
+      </div>
+      <nav id="bottom-nav">
+        <button class="nav-btn active" data-tab="map">
+          <span class="nav-icon">◎</span>
+          <span class="nav-label">MAP</span>
+        </button>
+        <button class="nav-btn" data-tab="people">
+          <span class="nav-icon">☺</span>
+          <span class="nav-label">PEOPLE</span>
+        </button>
+        <button class="nav-btn" data-tab="jobs">
+          <span class="nav-icon">▣</span>
+          <span class="nav-label">JOBS</span>
+        </button>
+        <button class="nav-btn" data-tab="log">
+          <span class="nav-icon">≡</span>
+          <span class="nav-label">LOG</span>
+        </button>
+      </nav>
+    </footer>
 
     <!-- Travel -->
     <div id="travel-modal" class="modal-full hidden">
       <div class="modal-bar">
-        <span></span>
+        <span class="modal-bar-spacer"></span>
         <span class="modal-bar-title" id="travel-bar-title">TRAVELING</span>
-        <span class="modal-bar-meta" id="travel-bar-time"></span>
+        <button class="sheet-back" id="travel-close" aria-label="Close">✕</button>
       </div>
+      <p class="modal-subtitle" id="travel-bar-time"></p>
       <div class="modal-body">
         <div class="travel-map-preview" id="travel-map-preview"></div>
         <div class="travel-stat-grid">
@@ -122,14 +132,17 @@
         <span class="modal-bar-meta" id="encounter-bar-time"></span>
       </div>
       <div class="modal-body encounter-body">
-        <div id="encounter-portrait" class="portrait portrait-lg"></div>
+        <div class="encounter-hero">
+          <div id="encounter-portrait" class="portrait portrait-lg"></div>
+        </div>
+        <div class="encounter-content">
         <div class="dialogue-box" id="encounter-text"></div>
         <p class="actions-label">What do you do?</p>
         <div id="encounter-actions"></div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <span class="footer-cash">Cash on hand</span>
-        <span class="footer-cash-amount" id="encounter-cash">$0</span>
+      <div class="modal-footer modal-footer-cash">
+        <span class="footer-cash-line">Cash on hand: <strong id="encounter-cash">$0</strong></span>
       </div>
     </div>
 
@@ -144,28 +157,31 @@
       <ul id="location-characters" class="list-rows"></ul>
       <div id="location-actions"></div>
       <div class="sheet-footer">
-        <button class="btn btn-secondary" id="location-leave">Leave Location</button>
+        <button class="btn btn-secondary" id="location-leave">📍 Leave Location</button>
       </div>
     </div>
 
     <!-- Character -->
     <div id="character-panel" class="modal-sheet hidden">
-      <div class="sheet-header">
+      <div class="sheet-header sheet-header-minimal">
         <button class="sheet-back" id="character-back">←</button>
-        <div class="sheet-header-person">
-          <div id="character-portrait" class="portrait"></div>
-          <div>
-            <h2 id="character-name"></h2>
-            <span id="character-role" class="tag"></span>
-            <span id="character-relationship" class="status-word"></span>
-          </div>
+        <h2 id="character-sheet-title" class="sheet-header-title"></h2>
+      </div>
+      <div class="character-hero">
+        <div id="character-portrait" class="portrait portrait-hero"></div>
+      </div>
+      <div class="character-info">
+        <h2 id="character-name"></h2>
+        <div class="character-tags">
+          <span id="character-role" class="tag"></span>
         </div>
+        <span id="character-relationship" class="status-word"></span>
       </div>
       <div class="dialogue-box" id="character-dialogue"></div>
       <p class="actions-label">What do you do?</p>
       <div id="character-actions"></div>
       <div class="sheet-footer">
-        <button class="btn btn-danger-outline" id="character-leave">Leave</button>
+        <button class="btn btn-leave" id="character-leave">✕ Leave</button>
       </div>
     </div>
 
@@ -184,9 +200,8 @@
 
     <!-- Menu drawer -->
     <div id="menu-drawer" class="modal-sheet hidden">
-      <div class="sheet-header">
-        <h2>Menu</h2>
-        <button class="sheet-back" data-close="menu-drawer">✕</button>
+      <div class="sheet-toolbar">
+        <button class="sheet-back" data-close="menu-drawer" aria-label="Close menu">✕</button>
       </div>
       <ul class="menu-list">
         <li><button class="menu-item" data-screen="turf">Turf Overview</button></li>
@@ -197,6 +212,8 @@
         <li><button class="menu-item" data-screen="profile">Profile</button></li>
         <li><button class="menu-item" data-screen="settings">Settings</button></li>
         <li><button class="menu-item" data-screen="help">How to Play</button></li>
+        <li class="menu-divider" role="separator"></li>
+        <li><button class="menu-item menu-item-danger" data-action="reset">Reset Game</button></li>
       </ul>
     </div>
 

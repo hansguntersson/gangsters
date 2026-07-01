@@ -7,21 +7,60 @@ const PORTRAIT_HUES = [
   [45, 35, 28], [55, 42, 32], [38, 48, 42], [52, 38, 45], [42, 40, 50],
 ];
 
-function portraitStyle(charId) {
+function getPortraitInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function portraitFallbackStyle(charId) {
   let hash = 0;
   for (let i = 0; i < charId.length; i++) hash = charId.charCodeAt(i) + ((hash << 5) - hash);
   const hue = PORTRAIT_HUES[Math.abs(hash) % PORTRAIT_HUES.length];
   return `background: linear-gradient(145deg, rgb(${hue[0]},${hue[1]},${hue[2]}) 0%, rgb(${hue[0]-12},${hue[1]-10},${hue[2]-8}) 100%)`;
 }
 
+function applyPortraitToElement(el, character, sizeClass) {
+  if (!el || !character) return;
+
+  el.classList.remove('has-sprite', 'portrait-lg', 'portrait-hero', 'sheet-1', 'sheet-2', 'sheet-3',
+    'idx-0', 'idx-1', 'idx-2', 'idx-3', 'idx-4', 'idx-5');
+  el.style.backgroundImage = '';
+  el.style.backgroundPosition = '';
+  el.style.backgroundSize = '';
+
+  if (sizeClass) el.classList.add(sizeClass);
+
+  if (character.portrait) {
+    const { sheet, index } = character.portrait;
+    el.classList.add('portrait', 'has-sprite', `sheet-${sheet}`, `idx-${index}`);
+    el.textContent = '';
+    el.removeAttribute('style');
+    return;
+  }
+
+  el.textContent = getPortraitInitials(character.name);
+  el.style.cssText = portraitFallbackStyle(character.id);
+}
+
+function portraitHTML(character, sizeClass) {
+  if (character.portrait) {
+    const { sheet, index } = character.portrait;
+    const extra = sizeClass ? ` ${sizeClass}` : '';
+    return `<div class="portrait has-sprite sheet-${sheet} idx-${index}${extra}"></div>`;
+  }
+  const style = portraitFallbackStyle(character.id);
+  const extra = sizeClass ? ` ${sizeClass}` : '';
+  return `<div class="portrait${extra}" style="${style}">${getPortraitInitials(character.name)}</div>`;
+}
+
 function initUI(cbs = {}) {
   callbacks = cbs;
   bindStaticEvents();
   bindTimeControls();
+  renderTimeControls();
 }
 
 function bindTimeControls() {
-  document.querySelectorAll('.speed-btn').forEach(btn => {
+  document.querySelectorAll('#time-controls .speed-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       setTimeSpeed(parseInt(btn.dataset.speed, 10));
       renderTimeControls();
@@ -31,7 +70,7 @@ function bindTimeControls() {
 
 function renderTimeControls() {
   const speed = getTimeSpeed();
-  document.querySelectorAll('.speed-btn').forEach(btn => {
+  document.querySelectorAll('#time-controls .speed-btn').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.speed, 10) === speed);
   });
 }
@@ -48,18 +87,26 @@ function bindStaticEvents() {
     btn.addEventListener('click', () => {
       const id = btn.dataset.close;
       if (id) document.getElementById(id).classList.add('hidden');
-      if (id === 'menu-drawer' || id === 'menu-screen') setInteractionPaused(false);
+      if (id === 'menu-drawer' || id === 'menu-screen') {
+        setInteractionPaused(false);
+        setMenuBtnExpanded(false);
+      }
     });
   });
 
-  document.getElementById('menu-btn').addEventListener('click', openMenuDrawer);
+  document.getElementById('menu-btn').addEventListener('click', toggleMenuDrawer);
   document.getElementById('menu-back').addEventListener('click', () => {
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('menu-drawer').classList.remove('hidden');
+    setMenuBtnExpanded(true);
   });
 
   document.querySelectorAll('.menu-item').forEach(btn => {
-    btn.addEventListener('click', () => showMenuScreen(btn.dataset.screen));
+    if (btn.dataset.action === 'reset') {
+      btn.addEventListener('click', handleResetGame);
+    } else {
+      btn.addEventListener('click', () => showMenuScreen(btn.dataset.screen));
+    }
   });
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -78,10 +125,15 @@ function bindStaticEvents() {
   document.getElementById('travel-cancel').addEventListener('click', () => {
     if (callbacks.onCancelTravel) callbacks.onCancelTravel();
   });
+
+  document.getElementById('travel-close').addEventListener('click', () => {
+    if (callbacks.onCancelTravel) callbacks.onCancelTravel();
+  });
 }
 
 function renderAll() {
   renderStatusBar();
+  renderTimeControls();
   renderMap();
   renderInjuryBanner();
   if (currentTab === 'people') renderPeopleTab();
@@ -109,7 +161,7 @@ function renderInjuryBanner() {
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'injury-banner';
-      document.getElementById('status-bar').after(banner);
+      document.getElementById('app-header').after(banner);
     }
     const hrs = Math.ceil(state.player.injury.recoveryHoursRemaining);
     banner.textContent = `Injured — ${hrs} hours until you can move`;
@@ -140,10 +192,8 @@ function renderMap() {
       <div class="location-node ${isCurrent ? 'current' : ''} ${hasBusiness ? 'has-business' : ''} ${turfCls}"
            data-location="${loc.id}"
            style="left:${loc.x}px;top:${loc.y}px">
-        <div class="location-pill">
-          <span class="loc-icon">${loc.icon}</span>
-          <span class="loc-name">${loc.name}</span>
-        </div>
+        <div class="location-pin"><span class="loc-icon">${loc.icon}</span></div>
+        <span class="location-label">${loc.name}</span>
       </div>`;
   }).join('');
 
@@ -266,10 +316,6 @@ function matchLogFilter(entry, filter) {
   return (rules[filter] || []).some(kw => lower.includes(kw));
 }
 
-function getPortraitInitials(name) {
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-}
-
 function getCharacterRoleLabel(char) {
   const roles = {
     gang_member: 'Gang Member',
@@ -310,14 +356,18 @@ function renderListRowHTML(char) {
   const role = getCharacterRoleLabel(char);
   const gang = getGangLabel(char);
   const relCls = char.relationshipToPlayer || 'neutral';
-  const gangHtml = gang ? `<span class="tag ${gang.cls}">${gang.text}</span>` : '';
+  let roleLine = role;
+  let roleCls = '';
+  if (gang) {
+    roleLine = `${role} · ${gang.text}`;
+    roleCls = char.gangAffiliation === 'gang_a' ? 'gang-a' : 'gang-b';
+  }
   return `
     <li class="list-row" data-character="${char.id}">
-      <div class="portrait" style="${portraitStyle(char.id)}">${getPortraitInitials(char.name)}</div>
+      ${portraitHTML(char)}
       <div class="list-row-info">
         <div class="list-row-name">${char.name}</div>
-        <div class="list-row-role">${role}</div>
-        ${gangHtml}
+        <div class="list-row-role ${roleCls}">${roleLine}</div>
         <span class="status-word ${relCls}">${formatRelationshipWord(char.relationshipToPlayer)}</span>
       </div>
       <span class="list-row-chevron">›</span>
@@ -389,8 +439,7 @@ function showEncounterModal(title, character, text, choices, isDanger) {
 
   const portrait = document.getElementById('encounter-portrait');
   if (character) {
-    portrait.textContent = getPortraitInitials(character.name);
-    portrait.style.cssText = portraitStyle(character.id);
+    applyPortraitToElement(portrait, character, 'portrait-lg');
     portrait.classList.remove('hidden');
   } else {
     portrait.classList.add('hidden');
@@ -399,7 +448,7 @@ function showEncounterModal(title, character, text, choices, isDanger) {
   const actions = document.getElementById('encounter-actions');
   actions.innerHTML = '';
   choices.forEach(c => {
-    addActionRow(actions, c.label, c.sub || '', c.action, c.danger);
+    addActionRow(actions, c.label, c.sub || '', c.action, c.danger, c.icon);
   });
 
   updateFooterCash();
@@ -498,12 +547,13 @@ function openCharacterPanel(characterId) {
   setInteractionPaused(true);
 
   const tag = getRoleTag(char);
-  const portraitEl = document.getElementById('character-portrait');
-  portraitEl.textContent = getPortraitInitials(char.name);
-  portraitEl.style.cssText = portraitStyle(char.id);
+  const roleLabel = getCharacterRoleLabel(char);
+  const gang = getGangLabel(char);
+  applyPortraitToElement(document.getElementById('character-portrait'), char, 'portrait-hero');
+  document.getElementById('character-sheet-title').textContent = '';
   document.getElementById('character-name').textContent = char.name;
-  document.getElementById('character-role').textContent = tag.text;
-  document.getElementById('character-role').className = `tag ${tag.cls}`;
+  document.getElementById('character-role').textContent = gang ? `${roleLabel} · ${gang.text}` : tag.text;
+  document.getElementById('character-role').className = `tag ${gang ? gang.cls : tag.cls}`;
   const relEl = document.getElementById('character-relationship');
   relEl.textContent = `Relationship: ${formatRelationshipWord(char.relationshipToPlayer)}`;
   relEl.className = `status-word ${char.relationshipToPlayer}`;
@@ -514,7 +564,7 @@ function openCharacterPanel(characterId) {
 
   addActionRow(actions, 'Talk', 'See what they want', () => {
     document.getElementById('character-dialogue').textContent = getDialogue(char);
-  });
+  }, false, '💬');
 
   const jobs = getAvailableJobsForCharacter(char);
   if (jobs.length > 0 && char.relationshipToPlayer !== 'grudge') {
@@ -526,7 +576,7 @@ function openCharacterPanel(characterId) {
           addActionRow(actions, job.title, job.description, () => showJobPanel(job, characterId));
         });
       }
-    });
+    }, false, '💼');
   }
 
   if (canMugTarget(char)) {
@@ -534,7 +584,11 @@ function openCharacterPanel(characterId) {
       const result = performMugging(characterId);
       showResultToast(result.message, result.success);
       renderAll();
-      if (result.injured) closeCharacterPanel();
+      if (result.injured) {
+        closeCharacterPanel();
+      } else {
+        openCharacterPanel(characterId);
+      }
     });
   }
 
@@ -549,14 +603,14 @@ function openCharacterPanel(characterId) {
           renderAll();
         } else if (result.type === 'refused') {
           showEncounterModal('Extortion', char, result.message, [
-            { label: 'Escalate', sub: 'Risk a fight', action: () => {
+            { label: 'Escalate', sub: 'Risk a fight', icon: '⚠', action: () => {
               const esc = escalateExtortion(characterId);
               showResultToast(esc.message, esc.success);
               renderAll();
               closeEncounterModal();
               closeCharacterPanel();
             }, danger: true },
-            { label: 'Back down', sub: 'Walk away', action: () => {
+            { label: 'Back down', sub: 'Walk away', icon: '←', action: () => {
               showResultToast('You walked away.', true);
               closeEncounterModal();
             }},
@@ -564,7 +618,7 @@ function openCharacterPanel(characterId) {
         } else {
           showResultToast(result.message, false);
         }
-      });
+      }, false, '✊');
     }
   }
 
@@ -653,17 +707,52 @@ function showShakedownPanel(character, onResolved) {
     character,
     `${character.name} steps out: "You've got some nerve around here. Empty your pockets."`,
     [
-      { label: 'Stand your ground', sub: 'Risk a fight', action: () => finish(handleShakedownFight(character.id)), danger: true },
-      { label: 'Pay up', sub: 'Lose some cash', action: () => finish(handleShakedownPay(character.id)) },
-      { label: 'Run', sub: 'Try to get away', action: () => finish(handleShakedownRun(character.id)) },
+      { label: 'Stand your ground', sub: 'Risk a fight', icon: '⚠', action: () => finish(handleShakedownFight(character.id)), danger: true },
+      { label: 'Pay up', sub: 'Lose some cash', icon: '✕', action: () => finish(handleShakedownPay(character.id)) },
+      { label: 'Run', sub: 'Try to get away', icon: '🏃', action: () => finish(handleShakedownRun(character.id)) },
     ],
     true
   );
 }
 
+function setMenuBtnExpanded(open) {
+  const btn = document.getElementById('menu-btn');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeAllMenus() {
+  document.getElementById('menu-drawer').classList.add('hidden');
+  document.getElementById('menu-screen').classList.add('hidden');
+  setInteractionPaused(false);
+  setMenuBtnExpanded(false);
+}
+
+function toggleMenuDrawer() {
+  const drawer = document.getElementById('menu-drawer');
+  const screen = document.getElementById('menu-screen');
+  if (!drawer.classList.contains('hidden') || !screen.classList.contains('hidden')) {
+    closeAllMenus();
+    return;
+  }
+  openMenuDrawer();
+}
+
+function handleResetGame() {
+  if (!window.confirm('Start over? All progress will be lost.')) return;
+  closeAllMenus();
+  closeAllPanels();
+  if (callbacks.onResetGame) callbacks.onResetGame();
+  else {
+    resetGame();
+    renderAll();
+  }
+}
+
 function openMenuDrawer() {
   setInteractionPaused(true);
+  document.getElementById('menu-screen').classList.add('hidden');
   document.getElementById('menu-drawer').classList.remove('hidden');
+  setMenuBtnExpanded(true);
   hideOtherPanels('menu-drawer');
 }
 
@@ -679,13 +768,12 @@ function showMenuScreen(screen) {
 
   if (screen === 'garage') content.innerHTML = renderGarageScreen();
   else if (screen === 'settings') {
-    content.innerHTML = renderSettingsScreen();
-    bindTimeControls();
-    renderTimeControls();
+    content.innerHTML = '<div class="section-block"><p class="dialogue" style="font-size:14px">Use the time controls at the bottom of the screen. Opening menus still pauses time automatically.</p></div>';
   } else if (screen === 'help') content.innerHTML = renderHelpScreen();
   else content.innerHTML = `<p class="stub-notice">${titles[screen]} — coming soon.</p>`;
 
   document.getElementById('menu-screen').classList.remove('hidden');
+  setMenuBtnExpanded(true);
 }
 
 function renderGarageScreen() {
@@ -703,17 +791,6 @@ function renderGarageScreen() {
       </div></div>`;
 }
 
-function renderSettingsScreen() {
-  return `<div class="section-block"><h3>Time Speed</h3>
-    <p class="dialogue" style="font-size:13px">Menus pause time automatically.</p>
-    <div class="time-controls-row">
-      <button class="speed-btn" data-speed="0">||</button>
-      <button class="speed-btn" data-speed="1">&gt;</button>
-      <button class="speed-btn" data-speed="2">&gt;&gt;</button>
-      <button class="speed-btn" data-speed="3">&gt;&gt;&gt;</button>
-    </div></div>`;
-}
-
 function renderHelpScreen() {
   return `<div class="help-content section-block">
     <p>Tap locations on the map to travel. Talk to people, take jobs, hustle for cash.</p>
@@ -721,6 +798,7 @@ function renderHelpScreen() {
     <p>Collect extortion payments weekly. Miss a collection and agreements fall apart.</p>
     <p>If injured, rest at home or buy medicine at the pharmacy.</p>
     <p>Turf overlays appear at night — the city reveals itself when the sun goes down.</p>
+    <p>Use || &gt; &gt;&gt; &gt;&gt;&gt; at the bottom to pause or change game speed.</p>
   </div>`;
 }
 
@@ -732,10 +810,15 @@ function showResultToast(message, success) {
   setTimeout(() => el.classList.add('hidden'), 2500);
 }
 
-function addActionRow(container, title, sub, handler, danger) {
+function addActionRow(container, title, sub, handler, danger, icon) {
   const btn = document.createElement('button');
   btn.className = `action-row${danger ? ' danger' : ''}`;
-  btn.innerHTML = `<span class="action-title">${title}</span>${sub ? `<span class="action-sub">${sub}</span>` : ''}`;
+  btn.innerHTML = `
+    ${icon ? `<span class="action-row-icon">${icon}</span>` : ''}
+    <span class="action-row-body">
+      <span class="action-title">${title}</span>
+      ${sub ? `<span class="action-sub">${sub}</span>` : ''}
+    </span>`;
   btn.addEventListener('click', handler);
   container.appendChild(btn);
 }

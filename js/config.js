@@ -15,10 +15,18 @@ var CONFIG = {
   MAP_MIN_ZOOM: 0.45,
   MAP_MAX_ZOOM: 2.5,
   MAP_DEFAULT_ZOOM: 0.85,
+  PORTRAIT_COLS: 3,
+  PORTRAIT_ROWS: 2,
+  PORTRAIT_SHEETS: {
+    1: 'images/portraits-1.png',
+    2: 'images/portraits-2.png',
+    3: 'images/portraits-3.png',
+  },
   SHAKEDOWN_PAY_MIN: 5,
   SHAKEDOWN_PAY_MAX: 20,
   MUG_CASH_MIN: 8,
   MUG_CASH_MAX: 35,
+  MUG_COOLDOWN_HOURS: 18,
   EXTORTION_WEEKLY_MIN: 15,
   EXTORTION_WEEKLY_MAX: 40,
 };

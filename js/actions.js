@@ -2,6 +2,10 @@ function canMugTarget(character) {
   if (character.type !== 'civilian' && character.type !== 'hustler') return false;
   if (character.isBusinessOwner) return false;
   if (character.sellsWeapons || character.sellsVehicles) return false;
+  if (character.relationshipToPlayer === 'grudge') return false;
+  const cooldown = CONFIG.MUG_COOLDOWN_HOURS || 18;
+  if (character.lastMuggedAtHours !== undefined &&
+      getTotalHours() - character.lastMuggedAtHours < cooldown) return false;
   return true;
 }
 
@@ -9,6 +13,11 @@ function performMugging(targetId) {
   const state = getState();
   const target = state.characters[targetId];
   if (!target) return { success: false, message: 'Target not found.' };
+  if (!canMugTarget(target)) {
+    return { success: false, message: `Too risky — word's out about you. Give it time.` };
+  }
+
+  target.lastMuggedAtHours = getTotalHours();
 
   const modifiers = [];
   modifiers.push({ factor: getWeaponBonus(), weight: 1 });
@@ -40,9 +49,13 @@ function performMugging(targetId) {
     shiftRelationship(targetId, -1);
     addLog(`You took $${amount} from ${target.name}.`);
 
+    const discreet = target.traits?.social_discreet || 0;
+    const noticeChance = 0.7 - discreet * 0.1;
     for (const w of witnesses) {
-      shiftRelationship(w.id, -1);
-      addLog(`${w.name} saw what you did.`);
+      if (Math.random() < noticeChance) {
+        shiftRelationship(w.id, -1);
+        addLog(`${w.name} saw what you did.`);
+      }
     }
 
     return { success: true, message: `You took $${amount}.`, amount };
@@ -59,8 +72,12 @@ function performMugging(targetId) {
   }
 
   shiftRelationship(targetId, -1);
+  const discreet = target.traits?.social_discreet || 0;
+  const noticeChance = 0.7 - discreet * 0.1;
   for (const w of witnesses) {
-    shiftRelationship(w.id, -1);
+    if (Math.random() < noticeChance) {
+      shiftRelationship(w.id, -1);
+    }
   }
   addLog(`Failed to mug ${target.name}.`);
   return { success: false, message: `${target.name} got away.` };
@@ -81,6 +98,7 @@ function initiateExtortion(ownerId) {
   if (state.player.weapon) acceptChance += 0.25;
   if (owner.relationshipToPlayer === 'friendly') acceptChance += 0.2;
   if (owner.relationshipToPlayer === 'grudge') acceptChance -= 0.2;
+  acceptChance += (owner.traits?.intimidating_diplomatic || 0) * 0.08;
 
   const outcome = resolve(acceptChance, []);
 
@@ -352,6 +370,8 @@ function handleShakedownFight(characterId) {
   const modifiers = [{ factor: getWeaponBonus(), weight: 1 }];
   const brawny = char.traits?.brainy_brawny || 0;
   if (brawny > 0) modifiers.push({ factor: -0.1 * brawny, weight: 1 });
+  const intim = char.traits?.intimidating_diplomatic || 0;
+  if (intim < 0) modifiers.push({ factor: 0.08 * intim, weight: 1 });
 
   const outcome = resolve(0.5, modifiers);
 

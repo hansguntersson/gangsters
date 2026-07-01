@@ -22,6 +22,11 @@ function migrateSaveState() {
   if (!state.knownCharacters) {
     state.knownCharacters = [];
   }
+  for (const [id, c] of Object.entries(state.characters)) {
+    if (!c.portrait && typeof PORTRAIT_MAP !== 'undefined' && PORTRAIT_MAP[id]) {
+      c.portrait = PORTRAIT_MAP[id];
+    }
+  }
 }
 
 function getState() {

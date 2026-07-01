@@ -118,6 +118,26 @@ var TURF_ZONES = [
   { gang: 'gang_b', x: 614, y: 256, w: 375, h: 1109 },
 ];
 
+// Portrait sprites: sheet 1–3, index 0–5 (3×2 grid, left-to-right, top-to-bottom)
+var PORTRAIT_MAP = {
+  mickey:        { sheet: 1, index: 0 },
+  tony:          { sheet: 1, index: 1 },
+  maria:         { sheet: 1, index: 2 },
+  vinny:         { sheet: 1, index: 3 },
+  marco:         { sheet: 1, index: 4 },
+  eddie:         { sheet: 1, index: 5 },
+  slim:          { sheet: 2, index: 0 },
+  rico:          { sheet: 2, index: 1 },
+  sal:           { sheet: 2, index: 3 },
+  mrs_patterson: { sheet: 2, index: 4 },
+  pete:          { sheet: 2, index: 5 },
+  jimmy:         { sheet: 3, index: 0 },
+  old_joe:       { sheet: 3, index: 1 },
+  gus:           { sheet: 3, index: 4 },
+  frank:         { sheet: 3, index: 3 },
+  tom:           { sheet: 3, index: 5 },
+};
+
 function char(id, name, type, opts = {}) {
   return {
     id,
@@ -139,6 +159,7 @@ function char(id, name, type, opts = {}) {
     sellsWeapons: opts.sellsWeapons || false,
     sellsVehicles: opts.sellsVehicles || false,
     isBusinessOwner: opts.isBusinessOwner || false,
+    portrait: opts.portrait || PORTRAIT_MAP[id] || null,
     dialogue: opts.dialogue || {
       neutral: ['What do you want?', 'Can I help you?'],
       friendly: ['Good to see you.', 'Always a pleasure.'],
@@ -156,7 +177,7 @@ var CHARACTERS = {
       { fromHour: 14, toHour: 22, locationId: 'corner_a' },
       { fromHour: 22, toHour: 6, locationId: 'gang_a_hq' },
     ],
-    traits: { brainy_brawny: 2, intimidating_diplomatic: 2 },
+    traits: { brainy_brawny: 2, intimidating_diplomatic: -2 },
     jobsOffered: ['delivery_a1'],
     dialogue: {
       neutral: ['What do you want?', 'This is our turf. Watch yourself.'],
