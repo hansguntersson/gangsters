@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gangster Sim</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <div id="app">
+    <header id="status-bar">
+      <span id="clock-display">DAY 1  06:00</span>
+      <span id="cash-display">$0</span>
+    </header>
+
+    <div id="event-log"></div>
+
+    <div id="map-container">
+      <div id="map" class="day">
+        <div id="turf-layer"></div>
+        <div id="locations-layer"></div>
+        <div id="player-marker"></div>
+      </div>
+    </div>
+
+    <div id="travel-overlay" class="hidden">
+      <p id="travel-text">Traveling...</p>
+    </div>
+
+    <nav id="bottom-nav">
+      <button class="nav-btn" data-panel="crew" disabled>CREW</button>
+      <button class="nav-btn" data-panel="jobs">JOBS</button>
+      <button class="nav-btn" data-panel="inventory">INV</button>
+      <button class="nav-btn" data-panel="help">?</button>
+    </nav>
+
+    <!-- Location panel -->
+    <div id="location-panel" class="panel hidden">
+      <h2 id="location-name"></h2>
+      <hr>
+      <p class="panel-label">Here now:</p>
+      <ul id="location-characters"></ul>
+      <hr>
+      <div id="location-actions"></div>
+      <button class="btn btn-secondary" id="location-leave">LEAVE</button>
+    </div>
+
+    <!-- Character panel -->
+    <div id="character-panel" class="panel hidden">
+      <h2 id="character-name"></h2>
+      <p id="character-dialogue" class="dialogue"></p>
+      <hr>
+      <div id="character-actions"></div>
+      <button class="btn btn-secondary" id="character-leave">LEAVE</button>
+    </div>
+
+    <!-- Job detail panel -->
+    <div id="job-panel" class="panel hidden">
+      <h2 id="job-title"></h2>
+      <div id="job-details"></div>
+      <hr>
+      <button class="btn btn-primary" id="job-accept">ACCEPT</button>
+      <button class="btn btn-secondary" id="job-decline">DECLINE</button>
+    </div>
+
+    <!-- Choice panel (shakedowns, extortion, etc.) -->
+    <div id="choice-panel" class="panel hidden">
+      <h2 id="choice-title"></h2>
+      <p id="choice-text" class="dialogue"></p>
+      <hr>
+      <div id="choice-actions"></div>
+    </div>
+
+    <!-- Result toast -->
+    <div id="result-toast" class="hidden"></div>
+
+    <!-- Bottom slide panels -->
+    <div id="slide-panel" class="panel hidden">
+      <h2 id="slide-title"></h2>
+      <hr>
+      <div id="slide-content"></div>
+      <button class="btn btn-secondary" id="slide-close">CLOSE</button>
+    </div>
+
+    <!-- Help overlay -->
+    <div id="help-panel" class="panel hidden">
+      <h2>How to Play</h2>
+      <div class="help-content">
+        <p>Tap locations on the map to travel. Talk to people, take jobs, hustle for cash.</p>
+        <p>Buy weapons and vehicles to improve your odds. Watch your relationships — people remember what you do.</p>
+        <p>Collect extortion payments weekly. Miss a collection and agreements fall apart.</p>
+        <p>If injured, rest at home or buy medicine at the pharmacy.</p>
+      </div>
+      <button class="btn btn-secondary" id="help-close">CLOSE</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
