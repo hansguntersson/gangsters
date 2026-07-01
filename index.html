@@ -9,92 +9,216 @@
 <body>
   <div id="app">
     <header id="status-bar">
-      <span id="clock-display">DAY 1  06:00</span>
-      <span id="cash-display">$0</span>
+      <div id="clock-block">
+        <span id="day-display">DAY 1</span>
+        <span id="time-display">MON 6:00 AM</span>
+      </div>
+      <div id="cash-block">
+        <span id="cash-display">$25</span>
+        <span id="cash-label">CASH</span>
+      </div>
+      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
     </header>
 
-    <div id="event-log"></div>
-
-    <div id="map-container">
-      <div id="map" class="day">
-        <div id="turf-layer"></div>
-        <div id="locations-layer"></div>
-        <div id="player-marker"></div>
+    <main id="main-content">
+      <div id="tab-map" class="tab-view active">
+        <div id="map-container">
+          <div id="map-viewport">
+            <div id="map">
+              <img id="map-background" src="images/map-background.png" alt="" draggable="false">
+              <div id="turf-layer"></div>
+              <div id="locations-layer"></div>
+              <div id="player-marker">☺</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div id="travel-overlay" class="hidden">
-      <p id="travel-text">Traveling...</p>
-    </div>
+      <div id="tab-people" class="tab-view">
+        <div class="tab-header">
+          <h2>People</h2>
+          <p class="tab-subtitle">Contacts &amp; crew</p>
+        </div>
+        <div id="people-content" class="tab-scroll"></div>
+      </div>
+
+      <div id="tab-jobs" class="tab-view">
+        <div class="tab-header">
+          <h2>Jobs</h2>
+          <p class="tab-subtitle">Active operations</p>
+        </div>
+        <div id="jobs-content" class="tab-scroll"></div>
+      </div>
+
+      <div id="tab-log" class="tab-view">
+        <div class="tab-header">
+          <h2>Log</h2>
+          <div id="log-filters" class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="crew">Crew</button>
+            <button class="filter-btn" data-filter="business">Business</button>
+            <button class="filter-btn" data-filter="law">Law</button>
+            <button class="filter-btn" data-filter="rivals">Rivals</button>
+          </div>
+        </div>
+        <div id="log-content" class="tab-scroll"></div>
+      </div>
+    </main>
 
     <nav id="bottom-nav">
-      <button class="nav-btn" data-panel="crew" disabled>CREW</button>
-      <button class="nav-btn" data-panel="jobs">JOBS</button>
-      <button class="nav-btn" data-panel="inventory">INV</button>
-      <button class="nav-btn" data-panel="help">?</button>
+      <button class="nav-btn active" data-tab="map">
+        <span class="nav-icon">◎</span>
+        <span class="nav-label">MAP</span>
+      </button>
+      <button class="nav-btn" data-tab="people">
+        <span class="nav-icon">☺</span>
+        <span class="nav-label">PEOPLE</span>
+      </button>
+      <button class="nav-btn" data-tab="jobs">
+        <span class="nav-icon">▣</span>
+        <span class="nav-label">JOBS</span>
+      </button>
+      <button class="nav-btn" data-tab="log">
+        <span class="nav-icon">≡</span>
+        <span class="nav-label">LOG</span>
+      </button>
     </nav>
 
-    <!-- Location panel -->
-    <div id="location-panel" class="panel hidden">
-      <h2 id="location-name"></h2>
-      <hr>
-      <p class="panel-label">Here now:</p>
-      <ul id="location-characters"></ul>
-      <hr>
-      <div id="location-actions"></div>
-      <button class="btn btn-secondary" id="location-leave">LEAVE</button>
-    </div>
-
-    <!-- Character panel -->
-    <div id="character-panel" class="panel hidden">
-      <h2 id="character-name"></h2>
-      <p id="character-dialogue" class="dialogue"></p>
-      <hr>
-      <div id="character-actions"></div>
-      <button class="btn btn-secondary" id="character-leave">LEAVE</button>
-    </div>
-
-    <!-- Job detail panel -->
-    <div id="job-panel" class="panel hidden">
-      <h2 id="job-title"></h2>
-      <div id="job-details"></div>
-      <hr>
-      <button class="btn btn-primary" id="job-accept">ACCEPT</button>
-      <button class="btn btn-secondary" id="job-decline">DECLINE</button>
-    </div>
-
-    <!-- Choice panel (shakedowns, extortion, etc.) -->
-    <div id="choice-panel" class="panel hidden">
-      <h2 id="choice-title"></h2>
-      <p id="choice-text" class="dialogue"></p>
-      <hr>
-      <div id="choice-actions"></div>
-    </div>
-
-    <!-- Result toast -->
-    <div id="result-toast" class="hidden"></div>
-
-    <!-- Bottom slide panels -->
-    <div id="slide-panel" class="panel hidden">
-      <h2 id="slide-title"></h2>
-      <hr>
-      <div id="slide-content"></div>
-      <button class="btn btn-secondary" id="slide-close">CLOSE</button>
-    </div>
-
-    <!-- Help overlay -->
-    <div id="help-panel" class="panel hidden">
-      <h2>How to Play</h2>
-      <div class="help-content">
-        <p>Tap locations on the map to travel. Talk to people, take jobs, hustle for cash.</p>
-        <p>Buy weapons and vehicles to improve your odds. Watch your relationships — people remember what you do.</p>
-        <p>Collect extortion payments weekly. Miss a collection and agreements fall apart.</p>
-        <p>If injured, rest at home or buy medicine at the pharmacy.</p>
+    <!-- Travel -->
+    <div id="travel-modal" class="modal-full hidden">
+      <div class="modal-bar">
+        <span></span>
+        <span class="modal-bar-title" id="travel-bar-title">TRAVELING</span>
+        <span class="modal-bar-meta" id="travel-bar-time"></span>
       </div>
-      <button class="btn btn-secondary" id="help-close">CLOSE</button>
+      <div class="modal-body">
+        <div class="travel-map-preview" id="travel-map-preview"></div>
+        <div class="travel-stat-grid">
+          <div class="travel-stat">
+            <div class="travel-stat-label">Travel Time</div>
+            <div class="travel-stat-value" id="travel-time">—</div>
+          </div>
+          <div class="travel-stat">
+            <div class="travel-stat-label">Mode</div>
+            <div class="travel-stat-value" id="travel-mode">On Foot</div>
+          </div>
+        </div>
+        <div id="travel-risk" class="banner banner-caution hidden">
+          <span class="banner-icon">⚠</span>
+          <span id="travel-risk-text"></span>
+        </div>
+        <div id="travel-progress"><div id="travel-progress-bar"></div></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger-outline" id="travel-cancel">Cancel Travel</button>
+      </div>
     </div>
+
+    <!-- Encounter -->
+    <div id="encounter-modal" class="modal-full hidden">
+      <div class="modal-bar danger" id="encounter-bar">
+        <span></span>
+        <span class="modal-bar-title" id="encounter-title">ENCOUNTER</span>
+        <span class="modal-bar-meta" id="encounter-bar-time"></span>
+      </div>
+      <div class="modal-body encounter-body">
+        <div id="encounter-portrait" class="portrait portrait-lg"></div>
+        <div class="dialogue-box" id="encounter-text"></div>
+        <p class="actions-label">What do you do?</p>
+        <div id="encounter-actions"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="footer-cash">Cash on hand</span>
+        <span class="footer-cash-amount" id="encounter-cash">$0</span>
+      </div>
+    </div>
+
+    <!-- Location -->
+    <div id="location-panel" class="modal-sheet hidden">
+      <div class="sheet-header">
+        <button class="sheet-back" id="location-back">←</button>
+        <h2 id="location-name">LOCATION</h2>
+      </div>
+      <p class="sheet-meta" id="location-time"></p>
+      <p class="panel-label">Currently here</p>
+      <ul id="location-characters" class="list-rows"></ul>
+      <div id="location-actions"></div>
+      <div class="sheet-footer">
+        <button class="btn btn-secondary" id="location-leave">Leave Location</button>
+      </div>
+    </div>
+
+    <!-- Character -->
+    <div id="character-panel" class="modal-sheet hidden">
+      <div class="sheet-header">
+        <button class="sheet-back" id="character-back">←</button>
+        <div class="sheet-header-person">
+          <div id="character-portrait" class="portrait"></div>
+          <div>
+            <h2 id="character-name"></h2>
+            <span id="character-role" class="tag"></span>
+            <span id="character-relationship" class="status-word"></span>
+          </div>
+        </div>
+      </div>
+      <div class="dialogue-box" id="character-dialogue"></div>
+      <p class="actions-label">What do you do?</p>
+      <div id="character-actions"></div>
+      <div class="sheet-footer">
+        <button class="btn btn-danger-outline" id="character-leave">Leave</button>
+      </div>
+    </div>
+
+    <!-- Job -->
+    <div id="job-panel" class="modal-sheet hidden">
+      <div class="sheet-header">
+        <button class="sheet-back" id="job-back">←</button>
+        <h2 id="job-title">JOB</h2>
+      </div>
+      <div id="job-details"></div>
+      <div class="sheet-footer">
+        <button class="btn btn-primary" id="job-accept">Accept</button>
+        <button class="btn btn-secondary" id="job-decline">Decline</button>
+      </div>
+    </div>
+
+    <!-- Menu drawer -->
+    <div id="menu-drawer" class="modal-sheet hidden">
+      <div class="sheet-header">
+        <h2>Menu</h2>
+        <button class="sheet-back" data-close="menu-drawer">✕</button>
+      </div>
+      <ul class="menu-list">
+        <li><button class="menu-item" data-screen="turf">Turf Overview</button></li>
+        <li><button class="menu-item" data-screen="storage">Storage &amp; Warehouses</button></li>
+        <li><button class="menu-item" data-screen="bribery">Bribery Network</button></li>
+        <li><button class="menu-item" data-screen="prison">Prison &amp; Court</button></li>
+        <li><button class="menu-item" data-screen="garage">Garage</button></li>
+        <li><button class="menu-item" data-screen="profile">Profile</button></li>
+        <li><button class="menu-item" data-screen="settings">Settings</button></li>
+        <li><button class="menu-item" data-screen="help">How to Play</button></li>
+      </ul>
+    </div>
+
+    <div id="menu-screen" class="modal-full hidden">
+      <div class="sheet-header">
+        <button id="menu-back" class="sheet-back">←</button>
+        <h2 id="menu-screen-title">Menu</h2>
+        <button class="sheet-back" data-close="menu-screen">✕</button>
+      </div>
+      <div id="menu-screen-content" class="tab-scroll"></div>
+    </div>
+
+    <div id="result-toast" class="hidden"></div>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/actions.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/map-viewport.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

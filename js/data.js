@@ -1,12 +1,10 @@
-import { WEAPONS, VEHICLES } from './config.js';
-
-export const LOCATIONS = {
+var LOCATIONS = {
   home: {
     id: 'home',
     name: 'Your Apartment',
     type: 'home',
-    x: 80,
-    y: 580,
+    x: 136,
+    y: 1237,
     icon: '🏠',
     extortable: false,
     businessOwner: null,
@@ -16,8 +14,8 @@ export const LOCATIONS = {
     name: 'North Side HQ',
     type: 'gang',
     gang: 'gang_a',
-    x: 120,
-    y: 120,
+    x: 205,
+    y: 256,
     icon: '🔴',
     extortable: false,
     turf: 'gang_a',
@@ -27,18 +25,18 @@ export const LOCATIONS = {
     name: 'South Side HQ',
     type: 'gang',
     gang: 'gang_b',
-    x: 480,
-    y: 580,
+    x: 819,
+    y: 1237,
     icon: '🟢',
     extortable: false,
     turf: 'gang_b',
   },
   cafe: {
     id: 'cafe',
-    name: "Maria's Cafe",
+    name: "Maria's Café",
     type: 'neutral',
-    x: 300,
-    y: 280,
+    x: 512,
+    y: 597,
     icon: '☕',
     extortable: true,
     businessOwner: 'maria',
@@ -48,8 +46,8 @@ export const LOCATIONS = {
     id: 'deli',
     name: "Sal's Deli",
     type: 'neutral',
-    x: 200,
-    y: 380,
+    x: 341,
+    y: 811,
     icon: '🥪',
     extortable: true,
     businessOwner: 'sal',
@@ -57,20 +55,20 @@ export const LOCATIONS = {
   },
   corner_a: {
     id: 'corner_a',
-    name: 'Corner of 5th',
+    name: 'Corner A',
     type: 'corner',
-    x: 160,
-    y: 220,
+    x: 273,
+    y: 469,
     icon: '📍',
     extortable: false,
     turf: 'gang_a',
   },
   corner_b: {
     id: 'corner_b',
-    name: 'Dock Street',
+    name: 'Corner B',
     type: 'corner',
-    x: 440,
-    y: 320,
+    x: 751,
+    y: 683,
     icon: '📍',
     extortable: false,
     turf: 'gang_b',
@@ -79,8 +77,8 @@ export const LOCATIONS = {
     id: 'garage',
     name: "Gus's Garage",
     type: 'garage',
-    x: 380,
-    y: 480,
+    x: 649,
+    y: 1024,
     icon: '🔧',
     extortable: false,
   },
@@ -88,8 +86,8 @@ export const LOCATIONS = {
     id: 'pharmacy',
     name: 'City Pharmacy',
     type: 'pharmacy',
-    x: 300,
-    y: 480,
+    x: 512,
+    y: 1024,
     icon: '💊',
     extortable: false,
   },
@@ -97,8 +95,8 @@ export const LOCATIONS = {
     id: 'warehouse_district',
     name: 'Warehouse District',
     type: 'industrial',
-    x: 500,
-    y: 180,
+    x: 853,
+    y: 384,
     icon: '🏭',
     extortable: false,
     turf: 'gang_b',
@@ -107,17 +105,17 @@ export const LOCATIONS = {
     id: 'residential',
     name: 'Elm Street',
     type: 'residential',
-    x: 100,
-    y: 420,
+    x: 171,
+    y: 896,
     icon: '🏘️',
     extortable: false,
     turf: 'gang_a',
   },
 };
 
-export const TURF_ZONES = [
-  { gang: 'gang_a', x: 40, y: 80, w: 220, h: 400 },
-  { gang: 'gang_b', x: 360, y: 120, w: 220, h: 520 },
+var TURF_ZONES = [
+  { gang: 'gang_a', x: 68, y: 171, w: 375, h: 853 },
+  { gang: 'gang_b', x: 614, y: 256, w: 375, h: 1109 },
 ];
 
 function char(id, name, type, opts = {}) {
@@ -149,7 +147,7 @@ function char(id, name, type, opts = {}) {
   };
 }
 
-export const CHARACTERS = {
+var CHARACTERS = {
   // Gang A
   tony: char('tony', 'Tony Russo', 'gang_member', {
     gang: 'gang_a',
@@ -375,7 +373,7 @@ export const CHARACTERS = {
   }),
 };
 
-export const JOB_TEMPLATES = {
+var JOB_TEMPLATES = {
   hijack_1: {
     id: 'hijack_1',
     type: 'hijack',
@@ -453,7 +451,7 @@ export const JOB_TEMPLATES = {
   },
 };
 
-export function createInitialState() {
+function createInitialState() {
   const characters = {};
   for (const [id, template] of Object.entries(CHARACTERS)) {
     characters[id] = {
@@ -482,7 +480,9 @@ export function createInitialState() {
     vehicles: { ...VEHICLES },
     weapons: { ...WEAPONS },
     log: ['You wake up in your apartment. Time to hustle.'],
-    paused: false,
+    timeSpeed: CONFIG.DEFAULT_TIME_SPEED,
+    interactionPaused: false,
+    knownCharacters: [],
     pendingShakedown: null,
     gangGrudgeCount: { gang_a: 0, gang_b: 0 },
   };

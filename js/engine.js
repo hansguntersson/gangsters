@@ -1,32 +1,61 @@
-import { CONFIG, SAVE_KEY } from './config.js';
-import { createInitialState } from './data.js';
-
 let state = null;
 let onStateChange = null;
 let onLog = null;
 
-export function initEngine(callbacks = {}) {
+function initEngine(callbacks = {}) {
   onStateChange = callbacks.onStateChange || (() => {});
   onLog = callbacks.onLog || (() => {});
   const saved = loadGame();
   state = saved || createInitialState();
+  migrateSaveState();
   return state;
 }
 
-export function getState() {
+function migrateSaveState() {
+  if (state.timeSpeed === undefined) {
+    state.timeSpeed = state.paused ? 0 : CONFIG.DEFAULT_TIME_SPEED;
+    delete state.paused;
+  }
+  if (state.interactionPaused === undefined) {
+    state.interactionPaused = false;
+  }
+  if (!state.knownCharacters) {
+    state.knownCharacters = [];
+  }
+}
+
+function getState() {
   return state;
 }
 
-export function setPaused(paused) {
-  state.paused = paused;
+function setTimeSpeed(speed) {
+  const clamped = Math.max(0, Math.min(3, speed));
+  state.timeSpeed = clamped;
   saveGame();
+  onStateChange();
 }
 
-export function isPaused() {
-  return state.paused || state.player.inTransit;
+function getTimeSpeed() {
+  return state.timeSpeed ?? CONFIG.DEFAULT_TIME_SPEED;
 }
 
-export function addLog(message) {
+function setInteractionPaused(paused) {
+  state.interactionPaused = paused;
+}
+
+function isInteractionPaused() {
+  return !!state.interactionPaused;
+}
+
+function isClockBlocked() {
+  return getTimeSpeed() === 0 || isInteractionPaused();
+}
+
+function getMsPerGameMinute() {
+  return (CONFIG.SECONDS_PER_GAME_HOUR * 1000) / 60;
+}
+
+function addLog(message) {
   state.log.unshift(message);
   if (state.log.length > CONFIG.LOG_MAX_ENTRIES) {
     state.log.length = CONFIG.LOG_MAX_ENTRIES;
@@ -35,7 +64,7 @@ export function addLog(message) {
   saveGame();
 }
 
-export function saveGame() {
+function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -43,7 +72,7 @@ export function saveGame() {
   }
 }
 
-export function loadGame() {
+function loadGame() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (raw) return JSON.parse(raw);
@@ -53,29 +82,50 @@ export function loadGame() {
   return null;
 }
 
-export function resetGame() {
+function resetGame() {
   state = createInitialState();
   saveGame();
   onStateChange();
   return state;
 }
 
-export function formatClock() {
+function formatClock() {
   const { day, hour, minute } = state.clock;
   const h = String(hour).padStart(2, '0');
   const m = String(minute || 0).padStart(2, '0');
   return `DAY ${day}  ${h}:${m}`;
 }
 
-export function isNight(hour = state.clock.hour) {
+function formatDay() {
+  return `DAY ${state.clock.day}`;
+}
+
+function formatTime() {
+  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const weekday = days[(state.clock.day - 1) % 7];
+  const { hour, minute } = state.clock;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h = hour % 12 || 12;
+  const m = String(minute || 0).padStart(2, '0');
+  return `${weekday} ${h}:${m} ${ampm}`;
+}
+
+function markCharacterKnown(characterId) {
+  if (!state.knownCharacters.includes(characterId)) {
+    state.knownCharacters.push(characterId);
+    saveGame();
+  }
+}
+
+function isNight(hour = state.clock.hour) {
   return hour >= 20 || hour < 6;
 }
 
-export function getTotalHours() {
+function getTotalHours() {
   return (state.clock.day - 1) * CONFIG.HOURS_PER_DAY + state.clock.hour + (state.clock.minute || 0) / 60;
 }
 
-export function advanceClock(minutes) {
+function advanceClock(minutes) {
   let { day, hour, minute } = state.clock;
   minute += minutes;
 
@@ -107,7 +157,7 @@ export function advanceClock(minutes) {
   onStateChange();
 }
 
-export function checkJobExpiry() {
+function checkJobExpiry() {
   const now = getTotalHours();
   state.acceptedJobs = state.acceptedJobs.filter(job => {
     if (job.deadlineHours && now > job.deadlineHours) {
@@ -121,7 +171,7 @@ export function checkJobExpiry() {
   });
 }
 
-export function checkExtortionCadence() {
+function checkExtortionCadence() {
   const { day } = state.clock;
   const toRemove = [];
 
@@ -144,7 +194,7 @@ export function checkExtortionCadence() {
   state.extortionAgreements = state.extortionAgreements.filter(a => !toRemove.includes(a));
 }
 
-export function resolve(baseChance, modifiers = []) {
+function resolve(baseChance, modifiers = []) {
   let chance = baseChance;
   for (const m of modifiers) {
     chance += m.factor * m.weight;
@@ -153,21 +203,21 @@ export function resolve(baseChance, modifiers = []) {
   return Math.random() < chance ? 'success' : 'failure';
 }
 
-export function getWeaponBonus() {
+function getWeaponBonus() {
   if (!state.player.weapon) return 0;
   const w = state.weapons[state.player.weapon];
   if (!w) return 0;
   return w.combatBonus * 0.1;
 }
 
-export function getVehicleBonus() {
+function getVehicleBonus() {
   if (!state.player.vehicle) return 0;
   const v = state.vehicles[state.player.vehicle];
   if (!v) return 0;
   return v.travelBonus;
 }
 
-export function shiftRelationship(characterId, direction) {
+function shiftRelationship(characterId, direction) {
   const char = state.characters[characterId];
   if (!char) return;
 
@@ -196,12 +246,12 @@ export function shiftRelationship(characterId, direction) {
   saveGame();
 }
 
-export function modifyCash(amount) {
+function modifyCash(amount) {
   state.player.cash = Math.max(0, state.player.cash + amount);
   saveGame();
 }
 
-export function applyInjury(hours = CONFIG.BASE_RECOVERY_HOURS) {
+function applyInjury(hours = CONFIG.BASE_RECOVERY_HOURS) {
   state.player.injury = { injured: true, recoveryHoursRemaining: hours };
   state.player.position = 'home';
   state.player.inTransit = false;
@@ -209,7 +259,7 @@ export function applyInjury(hours = CONFIG.BASE_RECOVERY_HOURS) {
   saveGame();
 }
 
-export function getDialogue(character) {
+function getDialogue(character) {
   const rel = character.relationshipToPlayer || 'neutral';
   const lines = character.dialogue?.[rel] || character.dialogue?.neutral || ['...'];
   return lines[Math.floor(Math.random() * lines.length)];

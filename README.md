@@ -4,10 +4,12 @@ A prohibition-era gangster simulation game. Mobile-first, vanilla JS.
 
 ## Play
 
-Open `index.html` in a browser, or serve locally:
+Double-click `index.html` to open in your browser — no server required.
+
+Or serve locally if you prefer:
 
 ```bash
-npx serve .
+python -m http.server 3456
 ```
 
 ## Gameplay
@@ -24,6 +26,4 @@ Game state auto-saves to `localStorage` after every action.
 
 ## Stack
 
-- Vanilla HTML/CSS/JS (ES modules)
-- DOM-based top-down map
-- No build step required
+- Vanilla HTML/CSS/JS (classic scripts, no build step)

@@ -1,8 +1,4 @@
-import { LOCATIONS, TURF_ZONES } from './data.js';
-import { getState, getTotalHours } from './engine.js';
-import { CONFIG } from './config.js';
-
-export function getCharacterLocation(character, hour) {
+function getCharacterLocation(character, hour) {
   for (const slot of character.schedule) {
     if (slot.locationId === 'home') continue;
     const { fromHour, toHour } = slot;
@@ -15,7 +11,7 @@ export function getCharacterLocation(character, hour) {
   return null;
 }
 
-export function getCharactersAtLocation(locationId) {
+function getCharactersAtLocation(locationId) {
   const state = getState();
   const hour = state.clock.hour;
   const present = [];
@@ -30,7 +26,7 @@ export function getCharactersAtLocation(locationId) {
   return present;
 }
 
-export function distanceBetween(locA, locB) {
+function distanceBetween(locA, locB) {
   const a = LOCATIONS[locA];
   const b = LOCATIONS[locB];
   if (!a || !b) return 100;
@@ -39,7 +35,7 @@ export function distanceBetween(locA, locB) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-export function calculateTravelMinutes(fromId, toId) {
+function calculateTravelMinutes(fromId, toId) {
   const state = getState();
   const dist = distanceBetween(fromId, toId);
   const baseMinutes = Math.max(15, Math.round(dist / 8));
@@ -49,11 +45,11 @@ export function calculateTravelMinutes(fromId, toId) {
   return Math.max(5, Math.round(baseMinutes * (1 - vehicleBonus)));
 }
 
-export function getTurfZones() {
+function getTurfZones() {
   return TURF_ZONES;
 }
 
-export function checkTraversalShakedown(fromId, toId) {
+function checkTraversalShakedown(fromId, toId) {
   const state = getState();
   const hour = state.clock.hour;
 
@@ -83,7 +79,7 @@ export function checkTraversalShakedown(fromId, toId) {
   return null;
 }
 
-export function getLocationTypeClass(type) {
+function getLocationTypeClass(type) {
   const map = {
     home: 'type-home',
     gang: 'type-gang',
@@ -97,14 +93,14 @@ export function getLocationTypeClass(type) {
   return map[type] || 'type-neutral';
 }
 
-export function canPlayerMove() {
+function canPlayerMove() {
   const state = getState();
   if (state.player.injury.injured) return false;
   if (state.player.inTransit) return false;
   return true;
 }
 
-export function isWithinTimeWindow(window, hour) {
+function isWithinTimeWindow(window, hour) {
   const { fromHour, toHour } = window;
   if (fromHour < toHour) {
     return hour >= fromHour && hour < toHour;
@@ -112,19 +108,49 @@ export function isWithinTimeWindow(window, hour) {
   return hour >= fromHour || hour < toHour;
 }
 
-export function getJobTimeRemaining(job) {
+function getJobTimeRemaining(job) {
   if (!job.deadlineHours) return null;
   const remaining = job.deadlineHours - getTotalHours();
   return Math.max(0, Math.ceil(remaining));
 }
 
-export function getExtortionStatus(agreement) {
+function getExtortionStatus(agreement) {
   const state = getState();
   const daysSince = state.clock.day - agreement.lastCollectedDay;
   const due = daysSince >= CONFIG.EXTORTION_CADENCE_DAYS;
   return { daysSince, due, overdue: daysSince > CONFIG.EXTORTION_CADENCE_DAYS };
 }
 
-export function getNextCollectionDay(agreement) {
+function getNextCollectionDay(agreement) {
   return agreement.lastCollectedDay + CONFIG.EXTORTION_CADENCE_DAYS;
+}
+
+function getTravelModeLabel() {
+  const state = getState();
+  if (state.player.vehicle) {
+    return state.vehicles[state.player.vehicle]?.name || 'Vehicle';
+  }
+  return 'On Foot';
+}
+
+function getTravelRiskWarning(fromId, toId) {
+  const state = getState();
+  const from = LOCATIONS[fromId];
+  const to = LOCATIONS[toId];
+  if (!from || !to) return null;
+
+  const turfs = new Set();
+  if (from.turf) turfs.add(from.turf);
+  if (to.turf) turfs.add(to.turf);
+
+  for (const turf of turfs) {
+    const hostile = Object.values(state.characters).some(c =>
+      c.gangAffiliation === turf && c.relationshipToPlayer === 'grudge'
+    );
+    if (hostile) {
+      const name = turf === 'gang_a' ? 'Gang A' : 'Gang B';
+      return `You're entering ${name} turf. Risk of shakedown.`;
+    }
+  }
+  return null;
 }

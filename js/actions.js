@@ -1,21 +1,11 @@
-import { CONFIG, WEAPONS } from './config.js';
-import {
-  getState, resolve, getWeaponBonus, modifyCash, applyInjury,
-  shiftRelationship, addLog, getTotalHours, saveGame,
-} from './engine.js';
-import {
-  getCharactersAtLocation, isWithinTimeWindow,
-} from './world.js';
-import { JOB_TEMPLATES, LOCATIONS } from './data.js';
-
-export function canMugTarget(character) {
+function canMugTarget(character) {
   if (character.type !== 'civilian' && character.type !== 'hustler') return false;
   if (character.isBusinessOwner) return false;
   if (character.sellsWeapons || character.sellsVehicles) return false;
   return true;
 }
 
-export function performMugging(targetId) {
+function performMugging(targetId) {
   const state = getState();
   const target = state.characters[targetId];
   if (!target) return { success: false, message: 'Target not found.' };
@@ -76,7 +66,7 @@ export function performMugging(targetId) {
   return { success: false, message: `${target.name} got away.` };
 }
 
-export function initiateExtortion(ownerId) {
+function initiateExtortion(ownerId) {
   const state = getState();
   const owner = state.characters[ownerId];
   if (!owner?.isBusinessOwner) return null;
@@ -114,7 +104,7 @@ export function initiateExtortion(ownerId) {
   return { type: 'refused', message: `${owner.name} refuses. You can escalate or back down.`, ownerId };
 }
 
-export function escalateExtortion(ownerId) {
+function escalateExtortion(ownerId) {
   const state = getState();
   const owner = state.characters[ownerId];
   const modifiers = [{ factor: getWeaponBonus(), weight: 1 }];
@@ -151,7 +141,7 @@ export function escalateExtortion(ownerId) {
   return { success: false, message: 'You backed off before it got worse.' };
 }
 
-export function collectExtortion(businessId) {
+function collectExtortion(businessId) {
   const state = getState();
   const agreement = state.extortionAgreements.find(a => a.businessId === businessId);
   if (!agreement) return { success: false, message: 'No agreement here.' };
@@ -173,7 +163,7 @@ export function collectExtortion(businessId) {
   return { success: true, message: `Collected $${agreement.weeklyAmount}.`, amount: agreement.weeklyAmount };
 }
 
-export function acceptJob(templateId, issuedBy) {
+function acceptJob(templateId, issuedBy) {
   const state = getState();
   const template = JOB_TEMPLATES[templateId];
   if (!template) return null;
@@ -198,7 +188,7 @@ export function acceptJob(templateId, issuedBy) {
   return job;
 }
 
-export function executeHijackJob(job) {
+function executeHijackJob(job) {
   const state = getState();
   const hour = state.clock.hour;
 
@@ -247,7 +237,7 @@ export function executeHijackJob(job) {
   return { success: false, message: 'You had to bail. No payday.' };
 }
 
-export function executeDeliveryJob(job) {
+function executeDeliveryJob(job) {
   const state = getState();
 
   if (job.vehicleRequired && !state.player.vehicle) {
@@ -291,7 +281,7 @@ export function executeDeliveryJob(job) {
   return { success: false, message: 'Something went wrong with the drop.' };
 }
 
-export function buyWeapon(weaponId) {
+function buyWeapon(weaponId) {
   const state = getState();
   const weapon = WEAPONS[weaponId];
   if (!weapon) return { success: false, message: 'Unknown weapon.' };
@@ -304,7 +294,7 @@ export function buyWeapon(weaponId) {
   return { success: true, message: `You now carry a ${weapon.name}.` };
 }
 
-export function buyVehicle(vehicleId) {
+function buyVehicle(vehicleId) {
   const state = getState();
   const vehicle = state.vehicles[vehicleId];
   if (!vehicle) return { success: false, message: 'Unknown vehicle.' };
@@ -317,7 +307,7 @@ export function buyVehicle(vehicleId) {
   return { success: true, message: `You now own a ${vehicle.name}.` };
 }
 
-export function buyMedicine() {
+function buyMedicine() {
   const state = getState();
   if (!state.player.injury.injured) {
     return { success: false, message: 'You\'re not injured.' };
@@ -342,7 +332,7 @@ export function buyMedicine() {
   return { success: true, message: 'You feel a bit better.' };
 }
 
-export function handleShakedownPay(characterId) {
+function handleShakedownPay(characterId) {
   const state = getState();
   const amount = CONFIG.SHAKEDOWN_PAY_MIN +
     Math.floor(Math.random() * (CONFIG.SHAKEDOWN_PAY_MAX - CONFIG.SHAKEDOWN_PAY_MIN));
@@ -356,7 +346,7 @@ export function handleShakedownPay(characterId) {
   return { success: true, message: `You paid $${payAmount}.` };
 }
 
-export function handleShakedownFight(characterId) {
+function handleShakedownFight(characterId) {
   const state = getState();
   const char = state.characters[characterId];
   const modifiers = [{ factor: getWeaponBonus(), weight: 1 }];
@@ -387,7 +377,7 @@ export function handleShakedownFight(characterId) {
   return { success: false, message: 'You lost the fight and some cash.' };
 }
 
-export function handleShakedownRun(characterId) {
+function handleShakedownRun(characterId) {
   shiftRelationship(characterId, -1);
   getState().pendingShakedown = null;
   addLog('You ran. They won\'t forget it.');
@@ -395,17 +385,17 @@ export function handleShakedownRun(characterId) {
   return { success: true, message: 'You got away, but they\'re angrier.' };
 }
 
-export function getAvailableJobsForCharacter(character) {
+function getAvailableJobsForCharacter(character) {
   const state = getState();
   return (character.jobsOffered || [])
     .map(id => JOB_TEMPLATES[id])
     .filter(t => t && !state.acceptedJobs.some(j => j.id === t.id && j.issuedBy === character.id));
 }
 
-export function getWeaponShopItems() {
+function getWeaponShopItems() {
   return Object.values(WEAPONS);
 }
 
-export function getVehicleShopItems() {
+function getVehicleShopItems() {
   return Object.values(getState().vehicles);
 }
