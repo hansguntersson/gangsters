@@ -201,6 +201,11 @@ function acceptJob(templateId, issuedBy) {
   }
 
   state.acceptedJobs.push(job);
+
+  if (template.pickupLocation) markLocationKnown(template.pickupLocation);
+  if (template.dropoffLocation) markLocationKnown(template.dropoffLocation);
+  if (template.targetLocation) markLocationKnown(template.targetLocation);
+
   addLog(`Accepted: ${template.description}`);
   saveGame();
   return job;
@@ -413,7 +418,7 @@ function getAvailableJobsForCharacter(character) {
 }
 
 function getWeaponShopItems() {
-  return Object.values(WEAPONS);
+  return Object.values(WEAPONS).sort((a, b) => a.cost - b.cost || a.iconIndex - b.iconIndex);
 }
 
 function getVehicleShopItems() {

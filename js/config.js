@@ -22,6 +22,18 @@ var CONFIG = {
     2: 'images/portraits-2.png',
     3: 'images/portraits-3.png',
   },
+  LOCATION_ICON_SHEET: 'images/location-icons.PNG',
+  LOCATION_ICON_COLS: 4,
+  LOCATION_ICON_ROWS: 2,
+  LOCATION_ICON_SHEET_W: 1424,
+  LOCATION_ICON_SHEET_H: 706,
+  LOCATION_ICON_CELL_W: 356,
+  LOCATION_ICON_CELL_H: 353,
+  WEAPON_ICON_SHEET: 'images/weapons.PNG',
+  WEAPON_ICON_COLS: 3,
+  WEAPON_ICON_ROWS: 3,
+  WEAPON_ICON_SHEET_W: 1254,
+  WEAPON_ICON_SHEET_H: 1254,
   SHAKEDOWN_PAY_MIN: 5,
   SHAKEDOWN_PAY_MAX: 20,
   MUG_CASH_MIN: 8,
@@ -32,9 +44,15 @@ var CONFIG = {
 };
 
 var WEAPONS = {
-  cosh: { id: 'cosh', name: 'Cosh', tier: 1, cost: 10, combatBonus: 1, heatOnUse: 1 },
-  knife: { id: 'knife', name: 'Knife', tier: 2, cost: 30, combatBonus: 2, heatOnUse: 1 },
-  pistol: { id: 'pistol', name: 'Pistol', tier: 3, cost: 75, combatBonus: 3, heatOnUse: 2 },
+  brass_knuckles: { id: 'brass_knuckles', name: 'Brass Knuckles', iconIndex: 0, tier: 1, cost: 10, combatBonus: 1, heatOnUse: 1 },
+  chain: { id: 'chain', name: 'Chain', iconIndex: 1, tier: 1, cost: 15, combatBonus: 1, heatOnUse: 1 },
+  blackjack: { id: 'blackjack', name: 'Blackjack', iconIndex: 2, tier: 1, cost: 18, combatBonus: 2, heatOnUse: 1 },
+  baseball_bat: { id: 'baseball_bat', name: 'Baseball Bat', iconIndex: 3, tier: 2, cost: 25, combatBonus: 2, heatOnUse: 1 },
+  box_cutter: { id: 'box_cutter', name: 'Box Cutter', iconIndex: 4, tier: 2, cost: 28, combatBonus: 2, heatOnUse: 1 },
+  lead_pipe: { id: 'lead_pipe', name: 'Lead Pipe', iconIndex: 5, tier: 2, cost: 30, combatBonus: 2, heatOnUse: 1 },
+  switchblade: { id: 'switchblade', name: 'Switchblade', iconIndex: 6, tier: 2, cost: 35, combatBonus: 2, heatOnUse: 1 },
+  straight_razor: { id: 'straight_razor', name: 'Straight Razor', iconIndex: 7, tier: 2, cost: 38, combatBonus: 2, heatOnUse: 1 },
+  revolver: { id: 'revolver', name: 'Revolver', iconIndex: 8, tier: 3, cost: 75, combatBonus: 3, heatOnUse: 2 },
 };
 
 var VEHICLES = {

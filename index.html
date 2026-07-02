@@ -9,27 +9,28 @@
 <body>
   <div id="app">
     <header id="app-header">
-      <h1 id="app-title">Gangsters</h1>
       <div id="clock-block">
-        <span id="day-display">DAY 1</span>
         <span id="time-display">MON 6:00 AM</span>
       </div>
       <div id="cash-block">
         <span id="cash-display">$25</span>
-        <span id="cash-label">CASH</span>
       </div>
-      <button id="menu-btn" class="icon-btn" aria-label="Menu" aria-haspopup="true">☰</button>
+      <button id="menu-btn" class="icon-btn" aria-label="Settings" aria-haspopup="true">☰</button>
     </header>
 
     <main id="main-content">
       <div id="tab-map" class="tab-view active">
         <div id="map-container">
+          <div id="map-overlay" class="map-overlay">
+            <button type="button" id="turf-toggle" class="map-overlay-btn" aria-pressed="false" aria-label="Show gang turf" title="Gang turf">
+              <span class="map-overlay-btn-icon" aria-hidden="true"></span>
+            </button>
+          </div>
           <div id="map-viewport">
             <div id="map">
               <img id="map-background" src="images/map-background.png" alt="" draggable="false">
               <div id="turf-layer"></div>
               <div id="locations-layer"></div>
-              <div id="player-marker">☺</div>
             </div>
           </div>
         </div>
@@ -39,6 +40,13 @@
         <div class="tab-header">
           <h2>People</h2>
           <p class="tab-subtitle">Contacts &amp; crew</p>
+        </div>
+        <div id="people-filters" class="filter-bar people-filter-bar" role="tablist" aria-label="Filter people">
+          <button type="button" class="filter-btn active" data-filter="crew">Crew</button>
+          <button type="button" class="filter-btn" data-filter="contacts">Contacts</button>
+          <button type="button" class="filter-btn" data-filter="rivals">Rivals</button>
+          <button type="button" class="filter-btn" data-filter="law">Lawmen</button>
+          <button type="button" class="filter-btn" data-filter="other">Other</button>
         </div>
         <div id="people-content" class="tab-scroll"></div>
       </div>
@@ -51,18 +59,12 @@
         <div id="jobs-content" class="tab-scroll"></div>
       </div>
 
-      <div id="tab-log" class="tab-view">
+      <div id="tab-profile" class="tab-view">
         <div class="tab-header">
-          <h2>Log</h2>
-          <div id="log-filters" class="filter-bar">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="crew">Crew</button>
-            <button class="filter-btn" data-filter="business">Business</button>
-            <button class="filter-btn" data-filter="law">Law</button>
-            <button class="filter-btn" data-filter="rivals">Rivals</button>
-          </div>
+          <h2>Profile</h2>
+          <p class="tab-subtitle">Your status &amp; gear</p>
         </div>
-        <div id="log-content" class="tab-scroll"></div>
+        <div id="profile-content" class="tab-scroll"></div>
       </div>
     </main>
 
@@ -75,20 +77,44 @@
       </div>
       <nav id="bottom-nav">
         <button class="nav-btn active" data-tab="map">
-          <span class="nav-icon">◎</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z"/>
+              <circle cx="12" cy="11" r="2.25"/>
+            </svg>
+          </span>
           <span class="nav-label">MAP</span>
         </button>
         <button class="nav-btn" data-tab="people">
-          <span class="nav-icon">☺</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="3.5"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
           <span class="nav-label">PEOPLE</span>
         </button>
         <button class="nav-btn" data-tab="jobs">
-          <span class="nav-icon">▣</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="7" width="18" height="13" rx="1.5"/>
+              <path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7"/>
+              <path d="M3 12h18"/>
+            </svg>
+          </span>
           <span class="nav-label">JOBS</span>
         </button>
-        <button class="nav-btn" data-tab="log">
-          <span class="nav-icon">≡</span>
-          <span class="nav-label">LOG</span>
+        <button class="nav-btn" data-tab="profile">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="9" r="3"/>
+              <path d="M7.5 18.5c.9-2.2 2.7-3.5 4.5-3.5s3.6 1.3 4.5 3.5"/>
+            </svg>
+          </span>
+          <span class="nav-label">PROFILE</span>
         </button>
       </nav>
     </footer>
@@ -153,11 +179,13 @@
         <h2 id="location-name">LOCATION</h2>
       </div>
       <p class="sheet-meta" id="location-time"></p>
-      <p class="panel-label">Currently here</p>
+      <div id="location-details" class="location-details"></div>
+      <p class="panel-label" id="location-people-label">People here</p>
       <ul id="location-characters" class="list-rows"></ul>
       <div id="location-actions"></div>
-      <div class="sheet-footer">
-        <button class="btn btn-secondary" id="location-leave">📍 Leave Location</button>
+      <div class="sheet-footer location-sheet-footer">
+        <button class="btn btn-primary hidden" id="location-travel">Travel here</button>
+        <button class="btn btn-secondary" id="location-leave">Close</button>
       </div>
     </div>
 
@@ -198,30 +226,10 @@
       </div>
     </div>
 
-    <!-- Menu drawer -->
-    <div id="menu-drawer" class="modal-sheet hidden">
-      <div class="sheet-toolbar">
-        <button class="sheet-back" data-close="menu-drawer" aria-label="Close menu">✕</button>
-      </div>
-      <ul class="menu-list">
-        <li><button class="menu-item" data-screen="turf">Turf Overview</button></li>
-        <li><button class="menu-item" data-screen="storage">Storage &amp; Warehouses</button></li>
-        <li><button class="menu-item" data-screen="bribery">Bribery Network</button></li>
-        <li><button class="menu-item" data-screen="prison">Prison &amp; Court</button></li>
-        <li><button class="menu-item" data-screen="garage">Garage</button></li>
-        <li><button class="menu-item" data-screen="profile">Profile</button></li>
-        <li><button class="menu-item" data-screen="settings">Settings</button></li>
-        <li><button class="menu-item" data-screen="help">How to Play</button></li>
-        <li class="menu-divider" role="separator"></li>
-        <li><button class="menu-item menu-item-danger" data-action="reset">Reset Game</button></li>
-      </ul>
-    </div>
-
     <div id="menu-screen" class="modal-full hidden">
-      <div class="sheet-header">
-        <button id="menu-back" class="sheet-back">←</button>
-        <h2 id="menu-screen-title">Menu</h2>
-        <button class="sheet-back" data-close="menu-screen">✕</button>
+      <div class="sheet-header sheet-header-minimal">
+        <span class="sheet-header-spacer"></span>
+        <button class="sheet-back" data-close="menu-screen" aria-label="Close">✕</button>
       </div>
       <div id="menu-screen-content" class="tab-scroll"></div>
     </div>
@@ -230,6 +238,8 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/map-locations-data.js"></script>
+  <script src="js/city-grid.js"></script>
   <script src="js/data.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/world.js"></script>

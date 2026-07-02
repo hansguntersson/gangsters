@@ -1,6 +1,7 @@
 let callbacks = {};
 let currentTab = 'map';
-let logFilter = 'all';
+let peopleFilter = 'crew';
+let showGangTurf = false;
 let travelTotalMinutes = 0;
 
 const PORTRAIT_HUES = [
@@ -52,6 +53,13 @@ function portraitHTML(character, sizeClass) {
   return `<div class="portrait${extra}" style="${style}">${getPortraitInitials(character.name)}</div>`;
 }
 
+function weaponIconHTML(weapon, sizeClass) {
+  if (!weapon) return '';
+  const idx = weapon.iconIndex ?? 0;
+  const extra = sizeClass ? ` ${sizeClass}` : '';
+  return `<div class="weapon-icon has-sprite idx-${idx}${extra}" aria-hidden="true"></div>`;
+}
+
 function initUI(cbs = {}) {
   callbacks = cbs;
   bindStaticEvents();
@@ -87,48 +95,38 @@ function bindStaticEvents() {
     btn.addEventListener('click', () => {
       const id = btn.dataset.close;
       if (id) document.getElementById(id).classList.add('hidden');
-      if (id === 'menu-drawer' || id === 'menu-screen') {
+      if (id === 'menu-screen') {
         setInteractionPaused(false);
         setMenuBtnExpanded(false);
       }
     });
   });
 
-  document.getElementById('menu-btn').addEventListener('click', toggleMenuDrawer);
-  document.getElementById('menu-back').addEventListener('click', () => {
-    document.getElementById('menu-screen').classList.add('hidden');
-    document.getElementById('menu-drawer').classList.remove('hidden');
-    setMenuBtnExpanded(true);
-  });
-
-  document.querySelectorAll('.menu-item').forEach(btn => {
-    if (btn.dataset.action === 'reset') {
-      btn.addEventListener('click', handleResetGame);
-    } else {
-      btn.addEventListener('click', () => showMenuScreen(btn.dataset.screen));
-    }
-  });
+  document.getElementById('menu-btn').addEventListener('click', toggleSettings);
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+  document.querySelectorAll('#people-filters .filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      logFilter = btn.dataset.filter;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderLogTab();
+      peopleFilter = btn.dataset.filter;
+      document.querySelectorAll('#people-filters .filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === peopleFilter);
+      });
+      renderPeopleTab();
     });
   });
 
-  document.getElementById('travel-cancel').addEventListener('click', () => {
-    if (callbacks.onCancelTravel) callbacks.onCancelTravel();
-  });
-
-  document.getElementById('travel-close').addEventListener('click', () => {
-    if (callbacks.onCancelTravel) callbacks.onCancelTravel();
-  });
+  const turfToggle = document.getElementById('turf-toggle');
+  if (turfToggle) {
+    turfToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showGangTurf = !showGangTurf;
+      renderTurfToggle();
+      document.getElementById('map')?.classList.toggle('show-turf', showGangTurf);
+    });
+  }
 }
 
 function renderAll() {
@@ -138,12 +136,11 @@ function renderAll() {
   renderInjuryBanner();
   if (currentTab === 'people') renderPeopleTab();
   if (currentTab === 'jobs') renderJobsTab();
-  if (currentTab === 'log') renderLogTab();
+  if (currentTab === 'profile') renderProfileTab();
   updateFooterCash();
 }
 
 function renderStatusBar() {
-  document.getElementById('day-display').textContent = formatDay();
   document.getElementById('time-display').textContent = formatTime();
   document.getElementById('cash-display').textContent = `$${getState().player.cash}`;
 }
@@ -171,31 +168,82 @@ function renderInjuryBanner() {
   }
 }
 
+function turfZoneClass(gangId) {
+  return gangId ? `gang-${gangId.replace(/_/g, '-')}` : '';
+}
+
+function renderLocationNode(loc, state, playerPos) {
+  const isCurrent = loc.id === playerPos;
+  const isIntersection = loc.type === 'intersection';
+
+  if (isIntersection) {
+    return `
+      <div class="location-node intersection ${isCurrent ? 'current' : ''}"
+           data-location="${loc.id}"
+           style="left:${loc.x}px;top:${loc.y}px">
+        <div class="location-marker">
+          <div class="location-pin-shell${isCurrent ? ' is-here' : ''}">
+            ${isCurrent
+              ? '<div class="location-pin current-location-marker" role="img" aria-label="You are here"></div>'
+              : `<div class="location-pin intersection-icon" role="img" aria-label="${loc.name}"></div>`}
+          </div>
+        </div>
+        <span class="location-label">${loc.name}</span>
+      </div>`;
+  }
+
+  const hasBusiness = state.extortionAgreements.some(a => a.businessId === loc.id);
+  const turfCls = turfZoneClass(loc.turf);
+  const iconIdx = loc.iconIndex ?? 0;
+  const showLabel = isCurrent || hasBusiness || loc.type !== 'building';
+  return `
+    <div class="location-node building ${isCurrent ? 'current' : ''} ${hasBusiness ? 'has-business' : ''} ${showLabel ? 'show-label' : ''} ${turfCls}"
+         data-location="${loc.id}"
+         style="left:${loc.x}px;top:${loc.y}px">
+      <div class="location-marker">
+        <div class="location-pin-shell${isCurrent ? ' is-here' : ''}">
+          ${isCurrent
+            ? '<div class="location-pin current-location-marker" role="img" aria-label="You are here"></div>'
+            : `<div class="location-pin has-sprite idx-${iconIdx}" role="img" aria-label="${loc.name}"></div>`}
+        </div>
+      </div>
+      <span class="location-label">${loc.name}</span>
+    </div>`;
+}
+
+function renderTurfToggle() {
+  const btn = document.getElementById('turf-toggle');
+  if (!btn) return;
+  btn.classList.toggle('active', showGangTurf);
+  btn.setAttribute('aria-pressed', showGangTurf ? 'true' : 'false');
+  btn.setAttribute('aria-label', showGangTurf ? 'Hide gang turf' : 'Show gang turf');
+  btn.title = showGangTurf ? 'Hide gang turf' : 'Show gang turf';
+}
+
 function renderMap() {
   const state = getState();
   const map = document.getElementById('map');
-  map.classList.toggle('show-turf', isNight());
+  map.classList.toggle('show-turf', showGangTurf);
+  renderTurfToggle();
 
   document.getElementById('turf-layer').innerHTML = getTurfZones().map(z => `
-    <div class="turf-zone ${z.gang === 'gang_a' ? 'gang-a' : 'gang-b'}"
+    <div class="turf-zone ${turfZoneClass(z.gang)}"
          style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px"></div>
   `).join('');
 
   const playerPos = state.player.position;
   const locLayer = document.getElementById('locations-layer');
+  const visible = Object.values(LOCATIONS).filter(loc => isLocationKnown(loc.id));
+  const sorted = visible.sort((a, b) => {
+    const rank = (loc) => {
+      if (loc.type === 'intersection') return 0;
+      if (loc.type === 'building') return 1;
+      return 2;
+    };
+    return rank(a) - rank(b);
+  });
 
-  locLayer.innerHTML = Object.values(LOCATIONS).map(loc => {
-    const isCurrent = loc.id === playerPos;
-    const hasBusiness = state.extortionAgreements.some(a => a.businessId === loc.id);
-    const turfCls = loc.turf === 'gang_a' ? 'turf-a' : (loc.turf === 'gang_b' ? 'turf-b' : '');
-    return `
-      <div class="location-node ${isCurrent ? 'current' : ''} ${hasBusiness ? 'has-business' : ''} ${turfCls}"
-           data-location="${loc.id}"
-           style="left:${loc.x}px;top:${loc.y}px">
-        <div class="location-pin"><span class="loc-icon">${loc.icon}</span></div>
-        <span class="location-label">${loc.name}</span>
-      </div>`;
-  }).join('');
+  locLayer.innerHTML = sorted.map(loc => renderLocationNode(loc, state, playerPos)).join('');
 
   locLayer.querySelectorAll('.location-node').forEach(node => {
     node.addEventListener('click', (e) => {
@@ -204,14 +252,6 @@ function renderMap() {
       if (callbacks.onLocationTap) callbacks.onLocationTap(node.dataset.location);
     });
   });
-
-  const playerLoc = LOCATIONS[playerPos];
-  const marker = document.getElementById('player-marker');
-  if (playerLoc) {
-    marker.style.left = `${playerLoc.x}px`;
-    marker.style.top = `${playerLoc.y}px`;
-    marker.classList.toggle('traveling', state.player.inTransit);
-  }
 }
 
 function switchTab(tab) {
@@ -223,25 +263,62 @@ function switchTab(tab) {
   });
   if (tab === 'people') renderPeopleTab();
   if (tab === 'jobs') renderJobsTab();
-  if (tab === 'log') renderLogTab();
+  if (tab === 'profile') renderProfileTab();
+}
+
+function getPeopleCategory(char, state) {
+  if ((state.crew || []).includes(char.id)) return 'crew';
+  if (char.relationshipToPlayer === 'grudge') return 'rivals';
+  if (char.gangAffiliation) {
+    const grudges = state.gangGrudgeCount?.[char.gangAffiliation] || 0;
+    if (grudges >= 2) return 'rivals';
+  }
+  if (char.relationshipToPlayer === 'friendly') return 'contacts';
+  if (char.type === 'civilian' && !char.isBusinessOwner) return 'law';
+  return 'other';
+}
+
+function matchesPeopleFilter(char, state, filter) {
+  return getPeopleCategory(char, state) === filter;
 }
 
 function renderPeopleTab() {
   const state = getState();
   const el = document.getElementById('people-content');
-  const known = state.knownCharacters.length > 0
-    ? state.knownCharacters.map(id => state.characters[id]).filter(Boolean)
-    : Object.values(state.characters).filter(c => getCharacterLocation(c, state.clock.hour));
+  const roster = state.knownCharacters
+    .map(id => state.characters[id])
+    .filter(Boolean);
 
-  if (known.length === 0) {
+  const filtered = roster.filter(c => matchesPeopleFilter(c, state, peopleFilter));
+
+  if (roster.length === 0) {
     el.innerHTML = '<p class="stub-notice">Nobody on your radar yet. Hit the map and make contacts.</p>';
     return;
   }
 
-  let html = '<div class="section-block"><h3>Contacts</h3><ul class="list-rows">';
-  known.forEach(c => { html += renderListRowHTML(c); });
-  html += '</ul></div><div class="section-block"><h3>Crew</h3>';
-  html += '<p class="stub-notice">Crew hiring coming soon.</p></div>';
+  if (filtered.length === 0) {
+    const emptyMessages = {
+      crew: 'No crew yet. Hiring comes later.',
+      contacts: 'No contacts yet. Build relationships on the map.',
+      rivals: 'Nobody gunning for you. For now.',
+      law: 'No lawmen on your radar.',
+      other: 'Nobody else on your radar.',
+    };
+    el.innerHTML = `<p class="stub-notice">${emptyMessages[peopleFilter] || emptyMessages.other}</p>`;
+    return;
+  }
+
+  const sectionTitles = {
+    crew: 'Crew',
+    contacts: 'Contacts',
+    rivals: 'Rivals',
+    law: 'Lawmen',
+    other: 'Other',
+  };
+
+  let html = `<div class="section-block"><h3>${sectionTitles[peopleFilter]}</h3><ul class="list-rows">`;
+  filtered.forEach(c => { html += renderListRowHTML(c); });
+  html += '</ul></div>';
   el.innerHTML = html;
   bindListRows(el);
 }
@@ -249,11 +326,11 @@ function renderPeopleTab() {
 function renderJobsTab() {
   const state = getState();
   const el = document.getElementById('jobs-content');
-  const weapon = state.player.weapon ? state.weapons[state.player.weapon]?.name : 'None';
+  const weapon = state.player.weapon ? state.weapons[state.player.weapon] : null;
   const vehicle = state.player.vehicle ? state.vehicles[state.player.vehicle]?.name : 'None';
 
   let html = `<div class="section-block"><h3>Loadout</h3>
-    <div class="section-item">Weapon: <strong>${weapon}</strong></div>
+    <div class="section-item loadout-row">${weapon ? weaponIconHTML(weapon, 'weapon-icon-sm') : ''}<div><strong>${weapon ? weapon.name : 'Unarmed'}</strong></div></div>
     <div class="section-item">Vehicle: <strong>${vehicle}</strong></div></div>`;
 
   if (state.extortionAgreements.length > 0) {
@@ -287,33 +364,41 @@ function renderJobsTab() {
   el.innerHTML = html;
 }
 
-function renderLogTab() {
+function renderProfileTab() {
   const state = getState();
-  const el = document.getElementById('log-content');
-  const entries = state.log.filter(e => matchLogFilter(e, logFilter));
+  const el = document.getElementById('profile-content');
+  const loc = LOCATIONS[state.player.position];
+  const vehicle = state.player.vehicle ? state.vehicles[state.player.vehicle] : null;
+  const weapon = state.player.weapon ? state.weapons[state.player.weapon] : null;
+  const injury = state.player.injury.injured
+    ? `Injured — ${Math.ceil(state.player.injury.recoveryHoursRemaining)}h to recover`
+    : 'Healthy';
 
-  if (entries.length === 0) {
-    el.innerHTML = '<p class="stub-notice">Nothing logged yet.</p>';
-    return;
-  }
-
-  el.innerHTML = entries.map(e => `
-    <div class="log-feed-item">
-      <div class="log-time">${formatDay()} · ${formatTime()}</div>
-      ${e}
-    </div>`).join('');
-}
-
-function matchLogFilter(entry, filter) {
-  if (filter === 'all') return true;
-  const lower = entry.toLowerCase();
-  const rules = {
-    crew: ['job', 'deliver', 'hijack', 'accepted', 'package'],
-    business: ['extort', 'collect', 'deli', 'cafe', 'protection', 'agreed'],
-    law: ['injur', 'police', 'medicine', 'recover', 'hurt'],
-    rivals: ['gang', 'shakedown', 'turf', 'hostile', 'north side', 'south side', 'stood your ground'],
-  };
-  return (rules[filter] || []).some(kw => lower.includes(kw));
+  el.innerHTML = `
+    <div class="section-block"><h3>Status</h3>
+      <div class="section-item">${formatDay()} · ${formatTime()}</div>
+      <div class="section-item">Cash: <strong>$${state.player.cash}</strong></div>
+      <div class="section-item">Location: <strong>${loc?.name || 'Unknown'}</strong></div>
+      <div class="section-item">Condition: <strong>${injury}</strong></div>
+      <div class="section-item">Contacts: <strong>${state.knownCharacters.length}</strong></div>
+    </div>
+    <div class="section-block"><h3>Weapon</h3>
+      <div class="section-item loadout-row">
+        ${weapon ? weaponIconHTML(weapon) : ''}
+        <div>${weapon ? weapon.name : 'Unarmed'}
+          <div class="dim">${weapon ? 'On your person' : 'Find Pete for hardware'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block"><h3>Vehicle</h3>
+      <div class="section-item">${vehicle ? vehicle.name : 'Nothing owned'}
+        <div class="dim">${vehicle ? 'Assigned to you' : "Visit Gus's Garage to buy wheels"}</div>
+      </div>
+    </div>
+    <div class="section-block"><h3>Operations</h3>
+      <div class="section-item">Active jobs: <strong>${state.acceptedJobs.length}</strong></div>
+      <div class="section-item">Protection rackets: <strong>${state.extortionAgreements.length}</strong></div>
+    </div>`;
 }
 
 function getCharacterRoleLabel(char) {
@@ -328,9 +413,9 @@ function getCharacterRoleLabel(char) {
 }
 
 function getGangLabel(char) {
-  if (char.gangAffiliation === 'gang_a') return { text: '♛ Gang A', cls: 'tag-gang-a' };
-  if (char.gangAffiliation === 'gang_b') return { text: '♛ Gang B', cls: 'tag-gang-b' };
-  return null;
+  if (!char.gangAffiliation) return null;
+  const name = getGangName(char.gangAffiliation);
+  return { text: `♛ ${name}`, cls: `tag-${char.gangAffiliation.replace(/_/g, '-')}` };
 }
 
 function getRoleTag(char) {
@@ -341,7 +426,7 @@ function getRoleTag(char) {
     dealer: { text: 'Dealer', cls: 'tag-dealer' },
     civilian: { text: 'Civilian', cls: 'tag-civilian' },
     mechanic: { text: 'Mechanic', cls: 'tag-mechanic' },
-    gang_member: { text: 'Gang Member', cls: 'tag-gang-a' },
+    gang_member: { text: 'Gang Member', cls: 'tag-neutral' },
   };
   return map[char.type] || { text: char.type, cls: 'tag-neutral' };
 }
@@ -360,7 +445,7 @@ function renderListRowHTML(char) {
   let roleCls = '';
   if (gang) {
     roleLine = `${role} · ${gang.text}`;
-    roleCls = char.gangAffiliation === 'gang_a' ? 'gang-a' : 'gang-b';
+    roleCls = turfZoneClass(char.gangAffiliation);
   }
   return `
     <li class="list-row" data-character="${char.id}">
@@ -408,9 +493,9 @@ function showTravelModal(targetName, remainingMinutes, totalMinutes, fromId, toI
     const len = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     preview.innerHTML = `
-      <div style="position:absolute;left:15%;top:50%;width:12px;height:12px;background:#fff;border-radius:50%"></div>
+      <div style="position:absolute;left:15%;top:50%;width:12px;height:12px;background:#fff;border:2px solid #2a1f18;border-radius:50%"></div>
       <div class="travel-route-line" style="left:15%;top:50%;width:${Math.min(len * 0.5, 200)}px;transform:rotate(${angle}deg)"></div>
-      <div style="position:absolute;left:75%;top:40%;font-size:16px">${to.icon}</div>`;
+      <div class="location-pin has-sprite idx-${to.iconIndex ?? 0}" style="position:absolute;left:72%;top:36%"></div>`;
   }
 
   document.getElementById('travel-modal').classList.remove('hidden');
@@ -461,6 +546,24 @@ function closeEncounterModal() {
   setInteractionPaused(false);
 }
 
+function getLocationSubtitle(loc, isHere) {
+  if (isHere) return `${formatTime()} · You're here`;
+  if (loc.type === 'intersection') return `${formatTime()} · Street corner`;
+  return formatTime();
+}
+
+function getLocationDetailHTML(loc) {
+  const rows = [];
+  if (loc.category) rows.push(['Type', loc.category]);
+  else if (loc.type && loc.type !== 'building') rows.push(['Type', loc.type]);
+  if (loc.block) rows.push(['Block', loc.block]);
+  if (loc.turf) rows.push(['Turf', getGangName(loc.turf)]);
+  if (rows.length === 0) return '';
+  return rows.map(([label, value]) =>
+    `<div class="location-detail-row"><span class="location-detail-label">${label}</span><span>${value}</span></div>`
+  ).join('');
+}
+
 function openLocationPanel(locationId) {
   const state = getState();
   const loc = LOCATIONS[locationId];
@@ -469,8 +572,12 @@ function openLocationPanel(locationId) {
   setInteractionPaused(true);
   switchTab('map');
 
+  const isHere = locationId === state.player.position;
+
   document.getElementById('location-name').textContent = loc.name.toUpperCase();
-  document.getElementById('location-time').textContent = `${formatTime()} · Currently here`;
+  document.getElementById('location-time').textContent = getLocationSubtitle(loc, isHere);
+  document.getElementById('location-details').innerHTML = getLocationDetailHTML(loc);
+  document.getElementById('location-people-label').textContent = isHere ? 'People here' : 'Around right now';
 
   const chars = getCharactersAtLocation(locationId);
   const list = document.getElementById('location-characters');
@@ -485,47 +592,77 @@ function openLocationPanel(locationId) {
   const actions = document.getElementById('location-actions');
   actions.innerHTML = '';
 
-  const agreement = state.extortionAgreements.find(a => a.businessId === locationId);
-  if (agreement) {
-    const status = getExtortionStatus(agreement);
-    if (status.due) {
-      addActionRow(actions, `Collect $${agreement.weeklyAmount}`, 'Protection money', () => {
-        const result = collectExtortion(locationId);
+  if (isHere) {
+    const agreement = state.extortionAgreements.find(a => a.businessId === locationId);
+    if (agreement) {
+      const status = getExtortionStatus(agreement);
+      if (status.due) {
+        addActionRow(actions, `Collect $${agreement.weeklyAmount}`, 'Protection money', () => {
+          const result = collectExtortion(locationId);
+          showResultToast(result.message, result.success);
+          if (result.success) renderAll();
+          closeLocationPanel();
+        });
+      }
+    }
+
+    if (loc.type === 'pharmacy') {
+      addActionRow(actions, 'Buy medicine', `$${CONFIG.MEDICINE_COST}`, () => {
+        const result = buyMedicine();
         showResultToast(result.message, result.success);
-        if (result.success) renderAll();
-        closeLocationPanel();
+        renderAll();
+      });
+    }
+
+    const activeJob = state.acceptedJobs.find(j => {
+      if (j.type === 'hijack') return j.targetLocation === locationId;
+      if (j.type === 'delivery') {
+        if (j.phase === 'pickup') return j.pickupLocation === locationId;
+        return j.dropoffLocation === locationId;
+      }
+      return false;
+    });
+
+    if (activeJob) {
+      const label = activeJob.type === 'hijack' ? 'Execute hijack'
+        : (activeJob.phase === 'pickup' ? 'Pick up package' : 'Deliver package');
+      addActionRow(actions, label, '', () => {
+        const result = activeJob.type === 'hijack'
+          ? executeHijackJob(activeJob)
+          : executeDeliveryJob(activeJob);
+        showResultToast(result.message, result.success);
+        renderAll();
+        if (result.injured) closeLocationPanel();
       });
     }
   }
 
-  if (loc.type === 'pharmacy') {
-    addActionRow(actions, 'Buy medicine', `$${CONFIG.MEDICINE_COST}`, () => {
-      const result = buyMedicine();
-      showResultToast(result.message, result.success);
-      renderAll();
-    });
-  }
+  const travelBtn = document.getElementById('location-travel');
+  const leaveBtn = document.getElementById('location-leave');
+  const footer = document.querySelector('.location-sheet-footer');
 
-  const activeJob = state.acceptedJobs.find(j => {
-    if (j.type === 'hijack') return j.targetLocation === locationId;
-    if (j.type === 'delivery') {
-      if (j.phase === 'pickup') return j.pickupLocation === locationId;
-      return j.dropoffLocation === locationId;
+  if (isHere) {
+    travelBtn.classList.add('hidden');
+    travelBtn.onclick = null;
+    leaveBtn.classList.add('hidden');
+    footer.classList.add('hidden');
+  } else {
+    footer.classList.remove('hidden');
+    leaveBtn.textContent = 'Close';
+    leaveBtn.classList.remove('hidden');
+    if (canPlayerMove()) {
+      const minutes = calculateTravelMinutes(state.player.position, locationId);
+      const risk = getTravelRiskWarning(state.player.position, locationId);
+      travelBtn.textContent = risk ? `Travel here (${minutes} min) · Risky` : `Travel here (${minutes} min)`;
+      travelBtn.classList.remove('hidden');
+      travelBtn.onclick = () => {
+        closeLocationPanel();
+        startTravel(locationId);
+      };
+    } else {
+      travelBtn.classList.add('hidden');
+      travelBtn.onclick = null;
     }
-    return false;
-  });
-
-  if (activeJob) {
-    const label = activeJob.type === 'hijack' ? 'Execute hijack'
-      : (activeJob.phase === 'pickup' ? 'Pick up package' : 'Deliver package');
-    addActionRow(actions, label, '', () => {
-      const result = activeJob.type === 'hijack'
-        ? executeHijackJob(activeJob)
-        : executeDeliveryJob(activeJob);
-      showResultToast(result.message, result.success);
-      renderAll();
-      if (result.injured) closeLocationPanel();
-    });
   }
 
   document.getElementById('location-panel').classList.remove('hidden');
@@ -562,8 +699,18 @@ function openCharacterPanel(characterId) {
   const actions = document.getElementById('character-actions');
   actions.innerHTML = '';
 
-  addActionRow(actions, 'Talk', 'See what they want', () => {
-    document.getElementById('character-dialogue').textContent = getDialogue(char);
+  addActionRow(actions, 'Talk', 'See what they know', () => {
+    const tips = shareWordOfMouth(characterId);
+    let line = getDialogue(char);
+    if (tips.length === 1) {
+      line += ` "You ought to check out ${tips[0]}."`;
+      addLog(`${char.name} tells you about ${tips[0]}.`);
+    } else if (tips.length > 1) {
+      line += ` "I can point you to a few places around town."`;
+      addLog(`${char.name} mentions ${tips.join(', ')}.`);
+    }
+    document.getElementById('character-dialogue').textContent = line;
+    if (tips.length > 0) renderAll();
   }, false, '💬');
 
   const jobs = getAvailableJobsForCharacter(char);
@@ -624,14 +771,17 @@ function openCharacterPanel(characterId) {
 
   if (char.sellsWeapons && char.relationshipToPlayer !== 'grudge') {
     addActionRow(actions, 'Buy weapon', 'Cash only', () => {
+      actions.innerHTML = '';
       getWeaponShopItems().forEach(w => {
-        addActionRow(actions, w.name, `$${w.cost}`, () => {
+        addWeaponShopRow(actions, w, () => {
           const result = buyWeapon(w.id);
           showResultToast(result.message, result.success);
           renderAll();
+          if (result.success) openCharacterPanel(characterId);
         });
       });
-    });
+      addActionRow(actions, 'Back', 'Return to actions', () => openCharacterPanel(characterId), false, '←');
+    }, false, '🔫');
   }
 
   if (char.sellsVehicles && char.relationshipToPlayer !== 'grudge') {
@@ -721,20 +871,40 @@ function setMenuBtnExpanded(open) {
 }
 
 function closeAllMenus() {
-  document.getElementById('menu-drawer').classList.add('hidden');
   document.getElementById('menu-screen').classList.add('hidden');
   setInteractionPaused(false);
   setMenuBtnExpanded(false);
 }
 
-function toggleMenuDrawer() {
-  const drawer = document.getElementById('menu-drawer');
+function toggleSettings() {
   const screen = document.getElementById('menu-screen');
-  if (!drawer.classList.contains('hidden') || !screen.classList.contains('hidden')) {
+  if (!screen.classList.contains('hidden')) {
     closeAllMenus();
     return;
   }
-  openMenuDrawer();
+  openSettings();
+}
+
+function openSettings() {
+  setInteractionPaused(true);
+  const content = document.getElementById('menu-screen-content');
+  content.innerHTML = renderSettingsScreen();
+  document.getElementById('settings-reset')?.addEventListener('click', handleResetGame);
+  document.getElementById('menu-screen').classList.remove('hidden');
+  setMenuBtnExpanded(true);
+  hideOtherPanels('menu-screen');
+}
+
+function renderSettingsScreen() {
+  return `<div class="settings-page">
+    <h1 class="settings-brand">Gangsters</h1>
+    <div class="section-block">
+      <p class="dialogue" style="font-size:14px">Use the time controls at the bottom of the screen to pause or change game speed. Opening this menu pauses time automatically.</p>
+    </div>
+    <div class="section-block">
+      <button class="btn btn-danger-outline" id="settings-reset">Reset Game</button>
+    </div>
+  </div>`;
 }
 
 function handleResetGame() {
@@ -748,66 +918,25 @@ function handleResetGame() {
   }
 }
 
-function openMenuDrawer() {
-  setInteractionPaused(true);
-  document.getElementById('menu-screen').classList.add('hidden');
-  document.getElementById('menu-drawer').classList.remove('hidden');
-  setMenuBtnExpanded(true);
-  hideOtherPanels('menu-drawer');
-}
-
-function showMenuScreen(screen) {
-  document.getElementById('menu-drawer').classList.add('hidden');
-  const content = document.getElementById('menu-screen-content');
-  const titles = {
-    turf: 'Turf Overview', storage: 'Storage & Warehouses', bribery: 'Bribery Network',
-    prison: 'Prison & Court', garage: 'Garage', profile: 'Profile',
-    settings: 'Settings', help: 'How to Play',
-  };
-  document.getElementById('menu-screen-title').textContent = titles[screen] || 'Menu';
-
-  if (screen === 'garage') content.innerHTML = renderGarageScreen();
-  else if (screen === 'settings') {
-    content.innerHTML = '<div class="section-block"><p class="dialogue" style="font-size:14px">Use the time controls at the bottom of the screen. Opening menus still pauses time automatically.</p></div>';
-  } else if (screen === 'help') content.innerHTML = renderHelpScreen();
-  else content.innerHTML = `<p class="stub-notice">${titles[screen]} — coming soon.</p>`;
-
-  document.getElementById('menu-screen').classList.remove('hidden');
-  setMenuBtnExpanded(true);
-}
-
-function renderGarageScreen() {
-  const state = getState();
-  const vehicle = state.player.vehicle ? state.vehicles[state.player.vehicle] : null;
-  const weapon = state.player.weapon ? state.weapons[state.player.weapon] : null;
-  return `
-    <div class="section-block"><h3>Vehicle</h3>
-      <div class="section-item">${vehicle ? vehicle.name : 'Nothing owned'}
-        <div class="dim">${vehicle ? 'Assigned to you' : "Visit Gus's Garage to buy wheels"}</div>
-      </div></div>
-    <div class="section-block"><h3>Weapon</h3>
-      <div class="section-item">${weapon ? weapon.name : 'Unarmed'}
-        <div class="dim">${weapon ? 'On your person' : 'Find Pete for hardware'}</div>
-      </div></div>`;
-}
-
-function renderHelpScreen() {
-  return `<div class="help-content section-block">
-    <p>Tap locations on the map to travel. Talk to people, take jobs, hustle for cash.</p>
-    <p>Buy weapons and vehicles to improve your odds. Watch your relationships — people remember what you do.</p>
-    <p>Collect extortion payments weekly. Miss a collection and agreements fall apart.</p>
-    <p>If injured, rest at home or buy medicine at the pharmacy.</p>
-    <p>Turf overlays appear at night — the city reveals itself when the sun goes down.</p>
-    <p>Use || &gt; &gt;&gt; &gt;&gt;&gt; at the bottom to pause or change game speed.</p>
-  </div>`;
-}
-
 function showResultToast(message, success) {
   const el = document.getElementById('result-toast');
   el.textContent = message;
   el.className = success ? 'success' : 'failure';
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 2500);
+}
+
+function addWeaponShopRow(container, weapon, handler) {
+  const btn = document.createElement('button');
+  btn.className = 'shop-weapon-row';
+  btn.innerHTML = `
+    ${weaponIconHTML(weapon)}
+    <span class="action-row-body">
+      <span class="action-title">${weapon.name}</span>
+      <span class="action-sub">$${weapon.cost}</span>
+    </span>`;
+  btn.addEventListener('click', handler);
+  container.appendChild(btn);
 }
 
 function addActionRow(container, title, sub, handler, danger, icon) {
@@ -828,14 +957,14 @@ function addActionButton(container, label, handler) {
 }
 
 function hideOtherPanels(exceptId) {
-  ['location-panel', 'character-panel', 'job-panel', 'encounter-modal', 'menu-drawer', 'menu-screen']
+  ['location-panel', 'character-panel', 'job-panel', 'encounter-modal', 'menu-screen']
     .filter(id => id !== exceptId)
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
 function isAnyPanelOpen() {
   return ['location-panel', 'character-panel', 'job-panel', 'encounter-modal',
-    'travel-modal', 'menu-drawer', 'menu-screen']
+    'travel-modal', 'menu-screen']
     .some(id => !document.getElementById(id).classList.contains('hidden'));
 }
 

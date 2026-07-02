@@ -1,123 +1,19 @@
-var LOCATIONS = {
-  home: {
-    id: 'home',
-    name: 'Your Apartment',
-    type: 'home',
-    x: 136,
-    y: 1237,
-    icon: '🏠',
-    extortable: false,
-    businessOwner: null,
-  },
-  gang_a_hq: {
-    id: 'gang_a_hq',
-    name: 'North Side HQ',
-    type: 'gang',
-    gang: 'gang_a',
-    x: 205,
-    y: 256,
-    icon: '🔴',
-    extortable: false,
-    turf: 'gang_a',
-  },
-  gang_b_hq: {
-    id: 'gang_b_hq',
-    name: 'South Side HQ',
-    type: 'gang',
-    gang: 'gang_b',
-    x: 819,
-    y: 1237,
-    icon: '🟢',
-    extortable: false,
-    turf: 'gang_b',
-  },
-  cafe: {
-    id: 'cafe',
-    name: "Maria's Café",
-    type: 'neutral',
-    x: 512,
-    y: 597,
-    icon: '☕',
-    extortable: true,
-    businessOwner: 'maria',
-    turf: null,
-  },
-  deli: {
-    id: 'deli',
-    name: "Sal's Deli",
-    type: 'neutral',
-    x: 341,
-    y: 811,
-    icon: '🥪',
-    extortable: true,
-    businessOwner: 'sal',
-    turf: 'gang_a',
-  },
-  corner_a: {
-    id: 'corner_a',
-    name: 'Corner A',
-    type: 'corner',
-    x: 273,
-    y: 469,
-    icon: '📍',
-    extortable: false,
-    turf: 'gang_a',
-  },
-  corner_b: {
-    id: 'corner_b',
-    name: 'Corner B',
-    type: 'corner',
-    x: 751,
-    y: 683,
-    icon: '📍',
-    extortable: false,
-    turf: 'gang_b',
-  },
-  garage: {
-    id: 'garage',
-    name: "Gus's Garage",
-    type: 'garage',
-    x: 649,
-    y: 1024,
-    icon: '🔧',
-    extortable: false,
-  },
-  pharmacy: {
-    id: 'pharmacy',
-    name: 'City Pharmacy',
-    type: 'pharmacy',
-    x: 512,
-    y: 1024,
-    icon: '💊',
-    extortable: false,
-  },
-  warehouse_district: {
-    id: 'warehouse_district',
-    name: 'Warehouse District',
-    type: 'industrial',
-    x: 853,
-    y: 384,
-    icon: '🏭',
-    extortable: false,
-    turf: 'gang_b',
-  },
-  residential: {
-    id: 'residential',
-    name: 'Elm Street',
-    type: 'residential',
-    x: 171,
-    y: 896,
-    icon: '🏘️',
-    extortable: false,
-    turf: 'gang_a',
-  },
+// Sprite indices: 0–7 on location-icons.PNG; 8 = intersection.png
+var LOCATION_ICON = {
+  HOME: 0,
+  TENEMENT: 1,
+  SHOPFRONT: 2,
+  WAREHOUSE: 3,
+  FACTORY: 4,
+  CAR_PARK: 5,
+  PARK: 6,
+  PIER: 7,
+  INTERSECTION: 8,
 };
 
-var TURF_ZONES = [
-  { gang: 'gang_a', x: 68, y: 171, w: 375, h: 853 },
-  { gang: 'gang_b', x: 614, y: 256, w: 375, h: 1109 },
-];
+var LOCATIONS = buildAllLocations();
 
+var TURF_ZONES = buildTurfZones();
 // Portrait sprites: sheet 1–3, index 0–5 (3×2 grid, left-to-right, top-to-bottom)
 var PORTRAIT_MAP = {
   mickey:        { sheet: 1, index: 0 },
@@ -165,31 +61,75 @@ function char(id, name, type, opts = {}) {
       friendly: ['Good to see you.', 'Always a pleasure.'],
       grudge: ['Get lost.', "You've got nerve showing your face."],
     },
+    revealsLocations: opts.revealsLocations || [],
   };
 }
 
 var CHARACTERS = {
-  // Gang A
-  tony: char('tony', 'Tony Russo', 'gang_member', {
-    gang: 'gang_a',
+  // The Longshoremen (waterfront)
+  frank: char('frank', 'Frank O\'Malley', 'gang_member', {
+    gang: 'longshoremen',
     schedule: [
-      { fromHour: 6, toHour: 14, locationId: 'gang_a_hq' },
-      { fromHour: 14, toHour: 22, locationId: 'corner_a' },
-      { fromHour: 22, toHour: 6, locationId: 'gang_a_hq' },
+      { fromHour: 6, toHour: 14, locationId: 'l030' },
+      { fromHour: 14, toHour: 22, locationId: 'l017' },
+      { fromHour: 22, toHour: 6, locationId: 'l030' },
     ],
     traits: { brainy_brawny: 2, intimidating_diplomatic: -2 },
-    jobsOffered: ['delivery_a1'],
+    jobsOffered: ['delivery_longshore'],
     dialogue: {
-      neutral: ['What do you want?', 'This is our turf. Watch yourself.'],
+      neutral: ['State your business.', 'This pier runs on our say-so.'],
+      friendly: ['Good to see a reliable face.', 'Got a job for you.'],
+      grudge: ['Wrong waterfront.', 'Pay up or swim home.'],
+    },
+  }),
+  rico: char('rico', 'Rico Santos', 'gang_member', {
+    gang: 'longshoremen',
+    schedule: [
+      { fromHour: 8, toHour: 20, locationId: 'l030' },
+      { fromHour: 20, toHour: 8, locationId: 'l040' },
+    ],
+    traits: { brainy_brawny: 1, restless_reliable: 1 },
+    dialogue: {
+      neutral: ['What do you need?', 'Keep moving.'],
+      friendly: ['Hey.', 'I might have something.'],
+      grudge: ['Trouble follows you.', 'Get off the docks.'],
+    },
+  }),
+  jimmy: char('jimmy', 'Jimmy Doyle', 'gang_member', {
+    gang: 'longshoremen',
+    schedule: [
+      { fromHour: 12, toHour: 22, locationId: 'l014' },
+      { fromHour: 22, toHour: 12, locationId: 'l030' },
+    ],
+    traits: { brainy_brawny: 0, ambitious_complacent: -1 },
+    dialogue: {
+      neutral: ['Yeah?', 'What?'],
+      friendly: ['Good to see you.', 'Stick around.'],
+      grudge: ['You.', 'Bad idea on the waterfront.'],
+    },
+  }),
+
+  // Factory Boys
+  tony: char('tony', 'Tony Russo', 'gang_member', {
+    gang: 'factory_boys',
+    schedule: [
+      { fromHour: 6, toHour: 14, locationId: 'l031' },
+      { fromHour: 14, toHour: 22, locationId: 'l033' },
+      { fromHour: 22, toHour: 6, locationId: 'l031' },
+    ],
+    traits: { brainy_brawny: 2, intimidating_diplomatic: -2 },
+    jobsOffered: ['delivery_factory'],
+    dialogue: {
+      neutral: ['What do you want?', 'Factory turf. Watch yourself.'],
       friendly: ['Good to see you.', "I've got work if you need it."],
       grudge: ["You've got nerve around here.", 'Empty your pockets or else.'],
     },
   }),
   vinny: char('vinny', 'Vinny Costa', 'gang_member', {
-    gang: 'gang_a',
+    gang: 'factory_boys',
     schedule: [
-      { fromHour: 8, toHour: 20, locationId: 'gang_a_hq' },
-      { fromHour: 20, toHour: 8, locationId: 'corner_a' },
+      { fromHour: 8, toHour: 20, locationId: 'l031' },
+      { fromHour: 20, toHour: 8, locationId: 'l033' },
     ],
     traits: { brainy_brawny: 1, loyal_opportunistic: -1 },
     dialogue: {
@@ -199,11 +139,11 @@ var CHARACTERS = {
     },
   }),
   marco: char('marco', 'Marco Bellini', 'gang_member', {
-    gang: 'gang_a',
+    gang: 'factory_boys',
     schedule: [
-      { fromHour: 10, toHour: 18, locationId: 'deli' },
-      { fromHour: 18, toHour: 4, locationId: 'gang_a_hq' },
-      { fromHour: 4, toHour: 10, locationId: 'residential' },
+      { fromHour: 10, toHour: 18, locationId: 'l024' },
+      { fromHour: 18, toHour: 4, locationId: 'l031' },
+      { fromHour: 4, toHour: 10, locationId: 'l004' },
     ],
     traits: { brainy_brawny: 1, social_discreet: 1 },
     dialogue: {
@@ -213,58 +153,34 @@ var CHARACTERS = {
     },
   }),
 
-  // Gang B
-  frank: char('frank', 'Frank O\'Malley', 'gang_member', {
-    gang: 'gang_b',
+  // Riverside Syndicate
+  pete: char('pete', 'Pete the Fence', 'hustler', {
+    gang: 'riverside_syndicate',
     schedule: [
-      { fromHour: 6, toHour: 14, locationId: 'gang_b_hq' },
-      { fromHour: 14, toHour: 22, locationId: 'corner_b' },
-      { fromHour: 22, toHour: 6, locationId: 'gang_b_hq' },
+      { fromHour: 14, toHour: 22, locationId: 'l003' },
+      { fromHour: 22, toHour: 6, locationId: 'l003' },
+      { fromHour: 6, toHour: 14, locationId: 'l014' },
     ],
-    traits: { brainy_brawny: 2, intimidating_diplomatic: 1 },
-    jobsOffered: ['delivery_b1'],
+    traits: { brainy_brawny: 0, social_discreet: 2 },
+    sellsWeapons: true,
     dialogue: {
-      neutral: ['State your business.', 'This is South Side territory.'],
-      friendly: ['Good to see a reliable face.', 'Got a job for you.'],
-      grudge: ['You picked the wrong turf.', 'Pay up or pay the price.'],
-    },
-  }),
-  rico: char('rico', 'Rico Santos', 'gang_member', {
-    gang: 'gang_b',
-    schedule: [
-      { fromHour: 8, toHour: 20, locationId: 'gang_b_hq' },
-      { fromHour: 20, toHour: 8, locationId: 'corner_b' },
-    ],
-    traits: { brainy_brawny: 1, restless_reliable: 1 },
-    dialogue: {
-      neutral: ['What do you need?', 'Keep moving.'],
-      friendly: ['Hey.', 'I might have something.'],
-      grudge: ['Trouble follows you.', 'Get out of here.'],
-    },
-  }),
-  jimmy: char('jimmy', 'Jimmy Doyle', 'gang_member', {
-    gang: 'gang_b',
-    schedule: [
-      { fromHour: 12, toHour: 22, locationId: 'warehouse_district' },
-      { fromHour: 22, toHour: 12, locationId: 'gang_b_hq' },
-    ],
-    traits: { brainy_brawny: 0, ambitious_complacent: -1 },
-    dialogue: {
-      neutral: ['Yeah?', 'What?'],
-      friendly: ['Good to see you.', 'Stick around.'],
-      grudge: ['You.', 'Bad idea coming here.'],
+      neutral: ['Looking for hardware?', 'Cash only.'],
+      friendly: ['For you, I got options.', 'Best prices in town.'],
+      grudge: ['No deals.', 'You bring too much heat.'],
     },
   }),
 
-  // Hustlers & dealers
+  // Oakwood Crew
   mickey: char('mickey', 'Mickey D', 'hustler', {
+    gang: 'oakwood_crew',
     schedule: [
-      { fromHour: 6, toHour: 12, locationId: 'cafe' },
-      { fromHour: 12, toHour: 20, locationId: 'corner_a' },
-      { fromHour: 20, toHour: 6, locationId: 'corner_a' },
+      { fromHour: 6, toHour: 12, locationId: 'l010' },
+      { fromHour: 12, toHour: 20, locationId: 'l048' },
+      { fromHour: 20, toHour: 6, locationId: 'l048' },
     ],
     traits: { brainy_brawny: -1, restless_reliable: 1 },
     jobsOffered: ['hijack_1', 'hijack_2'],
+    revealsLocations: ['l014', 'l033'],
     dialogue: {
       neutral: ['What do you want?', 'I might have something for you.'],
       friendly: ['Good to see you.', "I've been saving this one for you."],
@@ -272,13 +188,15 @@ var CHARACTERS = {
     },
   }),
   eddie: char('eddie', 'Eddie Shaw', 'hustler', {
+    gang: 'oakwood_crew',
     schedule: [
-      { fromHour: 8, toHour: 18, locationId: 'cafe' },
-      { fromHour: 18, toHour: 4, locationId: 'corner_b' },
-      { fromHour: 4, toHour: 8, locationId: 'residential' },
+      { fromHour: 8, toHour: 18, locationId: 'l010' },
+      { fromHour: 18, toHour: 4, locationId: 'l048' },
+      { fromHour: 4, toHour: 8, locationId: 'l047' },
     ],
     traits: { brainy_brawny: 0, social_discreet: -1 },
     jobsOffered: ['hijack_3', 'delivery_h1'],
+    revealsLocations: ['l010', 'l041'],
     dialogue: {
       neutral: ['Need something?', 'Talk fast.'],
       friendly: ['Hey, reliable as always.', 'Got a proposition.'],
@@ -286,11 +204,13 @@ var CHARACTERS = {
     },
   }),
   slim: char('slim', 'Slim Jenkins', 'dealer', {
+    gang: 'oakwood_crew',
     schedule: [
-      { fromHour: 20, toHour: 6, locationId: 'corner_a' },
-      { fromHour: 6, toHour: 20, locationId: 'corner_b' },
+      { fromHour: 20, toHour: 6, locationId: 'l048' },
+      { fromHour: 6, toHour: 20, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -1, social_discreet: 2 },
+    revealsLocations: ['l045', 'l046'],
     dialogue: {
       neutral: ['Keep it quiet.', 'What?'],
       friendly: ['Good to see a face I trust.', 'Business is good.'],
@@ -301,8 +221,8 @@ var CHARACTERS = {
   // Business owners
   maria: char('maria', 'Maria Rossi', 'civilian', {
     schedule: [
-      { fromHour: 6, toHour: 22, locationId: 'cafe' },
-      { fromHour: 22, toHour: 6, locationId: 'home' },
+      { fromHour: 6, toHour: 22, locationId: 'l010' },
+      { fromHour: 22, toHour: 6, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -2, intimidating_diplomatic: -2 },
     isBusinessOwner: true,
@@ -314,8 +234,8 @@ var CHARACTERS = {
   }),
   sal: char('sal', 'Sal Moretti', 'civilian', {
     schedule: [
-      { fromHour: 5, toHour: 21, locationId: 'deli' },
-      { fromHour: 21, toHour: 5, locationId: 'home' },
+      { fromHour: 5, toHour: 21, locationId: 'l024' },
+      { fromHour: 21, toHour: 5, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -1, intimidating_diplomatic: -1 },
     isBusinessOwner: true,
@@ -329,8 +249,8 @@ var CHARACTERS = {
   // Civilians
   mrs_patterson: char('mrs_patterson', 'Mrs. Patterson', 'civilian', {
     schedule: [
-      { fromHour: 8, toHour: 18, locationId: 'residential' },
-      { fromHour: 18, toHour: 8, locationId: 'home' },
+      { fromHour: 8, toHour: 18, locationId: 'l001' },
+      { fromHour: 18, toHour: 8, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -2, loyal_opportunistic: -1 },
     dialogue: {
@@ -341,8 +261,8 @@ var CHARACTERS = {
   }),
   tom: char('tom', 'Tom the Clerk', 'civilian', {
     schedule: [
-      { fromHour: 9, toHour: 17, locationId: 'residential' },
-      { fromHour: 17, toHour: 9, locationId: 'home' },
+      { fromHour: 9, toHour: 17, locationId: 'l033' },
+      { fromHour: 17, toHour: 9, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -1, ambitious_complacent: 1 },
     dialogue: {
@@ -353,8 +273,8 @@ var CHARACTERS = {
   }),
   old_joe: char('old_joe', 'Old Joe', 'civilian', {
     schedule: [
-      { fromHour: 10, toHour: 16, locationId: 'cafe' },
-      { fromHour: 16, toHour: 10, locationId: 'home' },
+      { fromHour: 10, toHour: 16, locationId: 'l010' },
+      { fromHour: 16, toHour: 10, locationId: 'l047' },
     ],
     traits: { brainy_brawny: -2, indulgent_spartan: 1 },
     dialogue: {
@@ -367,29 +287,16 @@ var CHARACTERS = {
   // Services
   gus: char('gus', 'Gus Kowalski', 'mechanic', {
     schedule: [
-      { fromHour: 7, toHour: 19, locationId: 'garage' },
-      { fromHour: 19, toHour: 7, locationId: 'home' },
+      { fromHour: 7, toHour: 19, locationId: 'l043' },
+      { fromHour: 19, toHour: 7, locationId: 'l047' },
     ],
     traits: { brainy_brawny: 1, loyal_opportunistic: 1 },
     sellsVehicles: true,
+    revealsLocations: ['l044', 'l042'],
     dialogue: {
       neutral: ['Need wheels?', 'I fix \'em, I sell \'em.'],
       friendly: ['Good customer.', 'Got something nice for you.'],
       grudge: ['No service for you.', 'Get out of my garage.'],
-    },
-  }),
-  pete: char('pete', 'Pete the Fence', 'hustler', {
-    schedule: [
-      { fromHour: 14, toHour: 22, locationId: 'corner_a' },
-      { fromHour: 22, toHour: 6, locationId: 'corner_b' },
-      { fromHour: 6, toHour: 14, locationId: 'warehouse_district' },
-    ],
-    traits: { brainy_brawny: 0, social_discreet: 2 },
-    sellsWeapons: true,
-    dialogue: {
-      neutral: ['Looking for hardware?', 'Cash only.'],
-      friendly: ['For you, I got options.', 'Best prices in town.'],
-      grudge: ['No deals.', 'You bring too much heat.'],
     },
   }),
 };
@@ -399,8 +306,8 @@ var JOB_TEMPLATES = {
     id: 'hijack_1',
     type: 'hijack',
     title: 'HIJACK JOB',
-    description: 'Hit a delivery van in the Warehouse District.',
-    targetLocation: 'warehouse_district',
+    description: 'Hit a delivery van at Riverside Warehouse Row.',
+    targetLocation: 'l014',
     timeWindow: { fromHour: 20, toHour: 4 },
     reward: 45,
     risk: 'medium',
@@ -411,8 +318,8 @@ var JOB_TEMPLATES = {
     id: 'hijack_2',
     type: 'hijack',
     title: 'HIJACK JOB',
-    description: 'Snatch cargo off Dock Street before dawn.',
-    targetLocation: 'corner_b',
+    description: 'Snatch cargo off North Pier before dawn.',
+    targetLocation: 'l017',
     timeWindow: { fromHour: 22, toHour: 5 },
     reward: 35,
     risk: 'low',
@@ -423,34 +330,34 @@ var JOB_TEMPLATES = {
     id: 'hijack_3',
     type: 'hijack',
     title: 'HIJACK JOB',
-    description: 'Grab a truck load from the industrial yards.',
-    targetLocation: 'warehouse_district',
+    description: 'Grab a truck load from the factory yards.',
+    targetLocation: 'l031',
     timeWindow: { fromHour: 21, toHour: 3 },
     reward: 60,
     risk: 'high',
     vehicleRequired: true,
     baseChance: 0.45,
   },
-  delivery_a1: {
-    id: 'delivery_a1',
+  delivery_longshore: {
+    id: 'delivery_longshore',
     type: 'delivery',
     title: 'DELIVERY JOB',
-    description: 'Move a package from North HQ to the corner.',
-    pickupLocation: 'gang_a_hq',
-    dropoffLocation: 'corner_a',
+    description: 'Move a package from Middle Pier to North Pier.',
+    pickupLocation: 'l030',
+    dropoffLocation: 'l017',
     timeLimitHours: 4,
     reward: 30,
     risk: 'low',
     vehicleRequired: false,
     baseChance: 0.8,
   },
-  delivery_b1: {
-    id: 'delivery_b1',
+  delivery_factory: {
+    id: 'delivery_factory',
     type: 'delivery',
     title: 'DELIVERY JOB',
-    description: 'Run goods from South HQ to the docks.',
-    pickupLocation: 'gang_b_hq',
-    dropoffLocation: 'corner_b',
+    description: 'Run goods from the factory to Jefferson Green.',
+    pickupLocation: 'l031',
+    dropoffLocation: 'l033',
     timeLimitHours: 5,
     reward: 35,
     risk: 'low',
@@ -461,9 +368,9 @@ var JOB_TEMPLATES = {
     id: 'delivery_h1',
     type: 'delivery',
     title: 'DELIVERY JOB',
-    description: 'Haul contraband from the cafe to the warehouse.',
-    pickupLocation: 'cafe',
-    dropoffLocation: 'warehouse_district',
+    description: 'Haul contraband from the café to the warehouse row.',
+    pickupLocation: 'l010',
+    dropoffLocation: 'l014',
     timeLimitHours: 3,
     reward: 40,
     risk: 'medium',
@@ -471,6 +378,10 @@ var JOB_TEMPLATES = {
     baseChance: 0.7,
   },
 };
+
+function getInitialKnownCharacters() {
+  return ['gus', 'slim', 'eddie'];
+}
 
 function createInitialState() {
   const characters = {};
@@ -481,10 +392,16 @@ function createInitialState() {
     };
   }
 
+  for (const id of getInitialKnownCharacters()) {
+    if (characters[id]) {
+      characters[id].relationshipToPlayer = 'friendly';
+    }
+  }
+
   return {
     clock: { day: 1, hour: 6, minute: 0 },
     player: {
-      position: 'home',
+      position: 'l047',
       cash: 25,
       weapon: null,
       vehicle: null,
@@ -500,11 +417,19 @@ function createInitialState() {
     extortionAgreements: [],
     vehicles: { ...VEHICLES },
     weapons: { ...WEAPONS },
-    log: ['You wake up in your apartment. Time to hustle.'],
-    timeSpeed: CONFIG.DEFAULT_TIME_SPEED,
+    log: ['You wake up in your apartment. Gus, Slim, and Eddie are the only faces you trust. The corner store and the garage are on your map — talk to people to hear about other spots.'],
+    timeSpeed: 0,
     interactionPaused: false,
-    knownCharacters: [],
+    knownCharacters: getInitialKnownCharacters(),
+    knownLocations: getInitialKnownLocations(),
+    heardRumorsFrom: [],
+    crew: [],
     pendingShakedown: null,
-    gangGrudgeCount: { gang_a: 0, gang_b: 0 },
+    gangGrudgeCount: {
+      longshoremen: 0,
+      factory_boys: 0,
+      oakwood_crew: 0,
+      riverside_syndicate: 0,
+    },
   };
 }

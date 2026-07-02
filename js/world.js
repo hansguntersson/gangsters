@@ -1,6 +1,6 @@
 function getCharacterLocation(character, hour) {
   for (const slot of character.schedule) {
-    if (slot.locationId === 'home') continue;
+    if (LOCATIONS[slot.locationId]?.type === 'home') continue;
     const { fromHour, toHour } = slot;
     if (fromHour < toHour) {
       if (hour >= fromHour && hour < toHour) return slot.locationId;
@@ -68,7 +68,7 @@ function checkTraversalShakedown(fromId, toId) {
       const loc = getCharacterLocation(c, hour);
       if (!loc) return false;
       const locData = LOCATIONS[loc];
-      return locData?.turf === turf || loc.endsWith('_hq');
+      return locData?.turf === turf || locData?.type === 'gang';
     });
 
     if (gangMembers.length > 0) {
@@ -148,7 +148,7 @@ function getTravelRiskWarning(fromId, toId) {
       c.gangAffiliation === turf && c.relationshipToPlayer === 'grudge'
     );
     if (hostile) {
-      const name = turf === 'gang_a' ? 'Gang A' : 'Gang B';
+      const name = getGangName(turf);
       return `You're entering ${name} turf. Risk of shakedown.`;
     }
   }

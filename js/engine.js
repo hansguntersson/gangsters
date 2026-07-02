@@ -22,11 +22,76 @@ function migrateSaveState() {
   if (!state.knownCharacters) {
     state.knownCharacters = [];
   }
+  if (!state.crew) {
+    state.crew = [];
+  }
+  if (!state.knownLocations) {
+    state.knownLocations = getInitialKnownLocations();
+  }
+  if (!state.heardRumorsFrom) {
+    state.heardRumorsFrom = [];
+  }
+  state.knownLocations = state.knownLocations.filter(id => LOCATIONS[id]?.type !== 'intersection');
   for (const [id, c] of Object.entries(state.characters)) {
     if (!c.portrait && typeof PORTRAIT_MAP !== 'undefined' && PORTRAIT_MAP[id]) {
       c.portrait = PORTRAIT_MAP[id];
     }
   }
+  const weaponIdMigration = { cosh: 'brass_knuckles', knife: 'switchblade', pistol: 'revolver' };
+  if (state.player.weapon && weaponIdMigration[state.player.weapon]) {
+    state.player.weapon = weaponIdMigration[state.player.weapon];
+  }
+  state.weapons = { ...WEAPONS };
+
+  const gangMigration = { gang_a: 'riverside_syndicate', gang_b: 'longshoremen' };
+  const jobIdMigration = { delivery_a1: 'delivery_longshore', delivery_b1: 'delivery_factory' };
+
+  if (state.player.position) {
+    state.player.position = migrateLocationId(state.player.position);
+  }
+  if (state.player.transitTarget) {
+    state.player.transitTarget = migrateLocationId(state.player.transitTarget);
+  }
+  if (state.player.inTransit && state.player.transitTarget) {
+    state.player.position = state.player.transitTarget;
+    state.player.inTransit = false;
+    state.player.transitTarget = null;
+  }
+
+  for (const c of Object.values(state.characters)) {
+    if (gangMigration[c.gangAffiliation]) {
+      c.gangAffiliation = gangMigration[c.gangAffiliation];
+    }
+    if (CHARACTERS[c.id]?.gangAffiliation) {
+      c.gangAffiliation = CHARACTERS[c.id].gangAffiliation;
+    }
+    for (const slot of c.schedule || []) {
+      slot.locationId = migrateLocationId(slot.locationId);
+    }
+  }
+
+  if (state.gangGrudgeCount) {
+    const migrated = {
+      longshoremen: (state.gangGrudgeCount.longshoremen || 0) + (state.gangGrudgeCount.gang_b || 0),
+      factory_boys: state.gangGrudgeCount.factory_boys || 0,
+      oakwood_crew: state.gangGrudgeCount.oakwood_crew || 0,
+      riverside_syndicate: (state.gangGrudgeCount.riverside_syndicate || 0) + (state.gangGrudgeCount.gang_a || 0),
+    };
+    state.gangGrudgeCount = migrated;
+  }
+
+  for (const job of state.acceptedJobs || []) {
+    if (jobIdMigration[job.id]) job.id = jobIdMigration[job.id];
+    job.pickupLocation = migrateLocationId(job.pickupLocation);
+    job.dropoffLocation = migrateLocationId(job.dropoffLocation);
+    job.targetLocation = migrateLocationId(job.targetLocation);
+  }
+
+  for (const agreement of state.extortionAgreements || []) {
+    agreement.businessId = migrateLocationId(agreement.businessId);
+  }
+
+  state.locations = { ...LOCATIONS };
 }
 
 function getState() {
@@ -120,6 +185,49 @@ function markCharacterKnown(characterId) {
     state.knownCharacters.push(characterId);
     saveGame();
   }
+}
+
+function isCharacterKnown(characterId) {
+  return (state.knownCharacters || []).includes(characterId);
+}
+
+function isLocationKnown(locationId) {
+  if (!locationId) return false;
+  const loc = LOCATIONS[locationId];
+  if (loc?.type === 'intersection') return true;
+  return (state.knownLocations || []).includes(locationId);
+}
+
+function markLocationKnown(locationId) {
+  if (!locationId || !LOCATIONS[locationId]) return;
+  if (LOCATIONS[locationId].type === 'intersection') return;
+  if (!state.knownLocations) state.knownLocations = [];
+  if (!state.knownLocations.includes(locationId)) {
+    state.knownLocations.push(locationId);
+    saveGame();
+  }
+}
+
+function shareWordOfMouth(characterId) {
+  if (!state.heardRumorsFrom) state.heardRumorsFrom = [];
+  if (state.heardRumorsFrom.includes(characterId)) return [];
+
+  const template = CHARACTERS[characterId];
+  const locationIds = template?.revealsLocations || [];
+  const newTips = [];
+
+  for (const id of locationIds) {
+    if (!LOCATIONS[id] || isLocationKnown(id)) continue;
+    markLocationKnown(id);
+    newTips.push(LOCATIONS[id].name);
+  }
+
+  if (locationIds.length > 0) {
+    state.heardRumorsFrom.push(characterId);
+    saveGame();
+  }
+
+  return newTips;
 }
 
 function isNight(hour = state.clock.hour) {
@@ -244,7 +352,7 @@ function shiftRelationship(characterId, direction) {
           c.relationshipToPlayer = 'grudge';
         }
       }
-      addLog(`Word spreads — ${char.gangAffiliation === 'gang_a' ? 'North Side' : 'South Side'} gang members are hostile.`);
+      addLog(`Word spreads — ${getGangName(char.gangAffiliation)} members are hostile.`);
     }
   }
 
@@ -258,7 +366,8 @@ function modifyCash(amount) {
 
 function applyInjury(hours = CONFIG.BASE_RECOVERY_HOURS) {
   state.player.injury = { injured: true, recoveryHoursRemaining: hours };
-  state.player.position = 'home';
+  state.player.position = 'l047';
+  markLocationKnown('l047');
   state.player.inTransit = false;
   addLog(`You're injured. Rest at home for ${Math.ceil(hours)} hours.`);
   saveGame();

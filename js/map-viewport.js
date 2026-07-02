@@ -102,7 +102,7 @@ function shouldIgnoreMapTap() {
 }
 
 function onMapPointerDown(e) {
-  if (e.target.closest('.location-node')) return;
+  if (e.target.closest('.location-node') || e.target.closest('.map-overlay')) return;
 
   const container = document.getElementById('map-container');
   container.setPointerCapture(e.pointerId);

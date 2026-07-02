@@ -18,7 +18,11 @@
   --text-dim: #6b5d4d;
   --text-on-dark: #f0e8d8;
   --cash: #1f5c3a;
-  --gang-a: #7c3aed;
+  --gang-longshoremen: #1e5f8a;
+  --gang-factory-boys: #c45c26;
+  --gang-oakwood-crew: #5c6b3c;
+  --gang-riverside-syndicate: #6d28d9;
+  --gang-a: var(--gang-riverside-syndicate);
   --gang-b: #b91c1c;
   --caution: #b45309;
   --danger: #991b1b;
@@ -26,7 +30,13 @@
   --map-street: #c4b49a;
   --map-building: #b8a88e;
   --map-window: #8b6914;
-  --app-header-height: 56px;
+  --app-header-height: 44px;
+  --loc-pin-size: 44px;
+  --loc-sheet-cols: 4;
+  --loc-sheet-rows: 2;
+  --weapon-icon-size: 48px;
+  --weapon-sheet-cols: 3;
+  --weapon-sheet-rows: 3;
 }
 
 html, body {
@@ -52,7 +62,7 @@ html, body {
 /* ── App header (always visible) ── */
 #app-header {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -62,27 +72,11 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 
-#app-title {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  line-height: 1;
-  white-space: nowrap;
-}
-
 #clock-block {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
   min-width: 0;
-}
-
-#day-display {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.2px;
-  color: var(--text-dim);
 }
 
 #time-display {
@@ -101,15 +95,6 @@ html, body {
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
-}
-
-#cash-label {
-  display: block;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  color: var(--text-dim);
-  margin-top: 1px;
 }
 
 .icon-btn {
@@ -188,6 +173,66 @@ html, body {
   cursor: grabbing;
 }
 
+.map-overlay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.map-overlay-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(42, 31, 24, 0.1);
+  border-radius: 8px;
+  background: rgba(242, 235, 224, 0.55);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: none;
+  touch-action: manipulation;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.map-overlay-btn:hover {
+  opacity: 0.92;
+}
+
+.map-overlay-btn:active {
+  transform: scale(0.96);
+  opacity: 1;
+}
+
+.map-overlay-btn.active {
+  border-color: rgba(42, 31, 24, 0.22);
+  background: rgba(242, 235, 224, 0.78);
+  opacity: 0.95;
+}
+
+.map-overlay-btn-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(30, 95, 138, 0.7) 50%, transparent 50%),
+    linear-gradient(225deg, rgba(196, 92, 38, 0.7) 50%, transparent 50%),
+    linear-gradient(45deg, rgba(92, 107, 60, 0.7) 50%, transparent 50%),
+    linear-gradient(315deg, rgba(109, 40, 217, 0.7) 50%, transparent 50%);
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.map-overlay-btn.active .map-overlay-btn-icon {
+  opacity: 0.9;
+}
+
 #map-viewport {
   position: absolute;
   top: 0;
@@ -221,10 +266,30 @@ html, body {
   position: absolute;
   border-radius: 6px;
   opacity: 0;
-  transition: opacity 1.2s ease;
+  transition: opacity 0.3s ease;
 }
 
 #map.show-turf .turf-zone { opacity: 1; }
+
+.turf-zone.gang-longshoremen {
+  background: rgba(30, 95, 138, 0.28);
+  border: 1px solid rgba(30, 95, 138, 0.45);
+}
+
+.turf-zone.gang-factory-boys {
+  background: rgba(196, 92, 38, 0.26);
+  border: 1px solid rgba(196, 92, 38, 0.42);
+}
+
+.turf-zone.gang-oakwood-crew {
+  background: rgba(92, 107, 60, 0.28);
+  border: 1px solid rgba(92, 107, 60, 0.45);
+}
+
+.turf-zone.gang-riverside-syndicate {
+  background: rgba(109, 40, 217, 0.26);
+  border: 1px solid rgba(109, 40, 217, 0.42);
+}
 
 .turf-zone.gang-a {
   background: rgba(124, 58, 237, 0.28);
@@ -240,18 +305,59 @@ html, body {
 
 .location-node {
   position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 0;
+  height: 0;
+  overflow: visible;
   cursor: pointer;
   z-index: 3;
   touch-action: manipulation;
 }
 
+.location-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+.location-pin-shell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--loc-pin-size);
+  height: var(--loc-pin-size);
+  flex-shrink: 0;
+}
+
+.location-pin-shell.is-here {
+  transform: translate(-50%, -100%);
+  width: 42px;
+  height: 50px;
+}
+
+.location-pin.current-location-marker {
+  width: 42px;
+  height: 50px;
+  border-radius: 0;
+  background: transparent url('../images/current-location.png') center bottom / contain no-repeat;
+  border: none;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.32));
+}
+
+.location-pin-shell .location-pin {
+  position: relative;
+  z-index: 2;
+}
+
 .location-pin {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #1a1410;
   border: 2px solid rgba(255,255,255,0.2);
@@ -260,10 +366,96 @@ html, body {
   justify-content: center;
   font-size: 17px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  flex-shrink: 0;
+}
+
+.location-pin.has-sprite {
+  width: var(--loc-pin-size);
+  height: var(--loc-pin-size);
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url('../images/location-icons.PNG');
+  background-repeat: no-repeat;
+  background-size: calc(var(--loc-pin-size) * var(--loc-sheet-cols)) calc(var(--loc-pin-size) * var(--loc-sheet-rows));
+  border: none;
+  box-shadow: none;
+}
+
+.location-pin.idx-0 { background-position: 0% 0%; }
+.location-pin.idx-1 { background-position: 33.333% 0%; }
+.location-pin.idx-2 { background-position: 66.666% 0%; }
+.location-pin.idx-3 { background-position: 100% 0%; }
+.location-pin.idx-4 { background-position: 0% 100%; }
+.location-pin.idx-5 { background-position: 33.333% 100%; }
+.location-pin.idx-6 { background-position: 66.666% 100%; }
+.location-pin.idx-7 { background-position: 100% 100%; }
+
+.location-node.current {
+  z-index: 6;
+}
+
+.location-node.current .location-label {
+  top: 6px;
+}
+
+.location-node.intersection {
+  z-index: 2;
+  --loc-pin-radius: 16px;
+}
+
+.location-node.intersection.current {
+  z-index: 5;
+}
+
+.location-node.intersection .location-pin-shell {
+  width: 32px;
+  height: 32px;
+}
+
+.location-pin.intersection-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent url('../images/intersection.png') center / contain no-repeat;
+  border: none;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.location-node.intersection .location-label {
+  font-size: 7px;
+  letter-spacing: 0.3px;
+  max-width: 96px;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.location-node.building:not(.show-label) .location-label {
+  display: none;
+}
+
+.location-node.building {
+  --loc-pin-radius: 18px;
+}
+
+.location-node.building .location-pin-shell {
+  width: 36px;
+  height: 36px;
+}
+
+.location-node.building .location-pin.has-sprite {
+  width: 36px;
+  height: 36px;
+  background-size: calc(36px * var(--loc-sheet-cols)) calc(36px * var(--loc-sheet-rows));
 }
 
 .location-label {
-  margin-top: 4px;
+  position: absolute;
+  left: 50%;
+  top: calc(var(--loc-pin-radius, 22px) + 4px);
+  transform: translateX(-50%);
+  margin-top: 0;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -274,48 +466,65 @@ html, body {
   border-radius: 4px;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-}
-
-.location-node.current .location-pin {
-  border-color: #fff;
-  box-shadow: 0 0 0 3px rgba(42, 31, 24, 0.35), 0 2px 10px rgba(0,0,0,0.35);
-}
-
-.location-node.turf-a .location-pin { border-color: rgba(124, 58, 237, 0.6); }
-.location-node.turf-b .location-pin { border-color: rgba(185, 28, 28, 0.6); }
-
-.location-node.has-business .location-pin {
-  border-color: rgba(31, 92, 58, 0.5);
-}
-
-#player-marker {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  background: #fff;
-  border: 2px solid #2a1f18;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: #2a1f18;
   pointer-events: none;
 }
 
-#player-marker.traveling {
-  animation: travel-bob 0.9s ease-in-out infinite;
+/* ── Weapon icons ── */
+.weapon-icon {
+  width: var(--weapon-icon-size);
+  height: var(--weapon-icon-size);
+  flex-shrink: 0;
 }
 
-@keyframes travel-bob {
-  0%, 100% { transform: translate(-50%, -50%); }
-  50% { transform: translate(-50%, -58%); }
+.weapon-icon.has-sprite {
+  background-image: url('../images/weapons.PNG');
+  background-repeat: no-repeat;
+  background-size: calc(var(--weapon-icon-size) * var(--weapon-sheet-cols)) calc(var(--weapon-icon-size) * var(--weapon-sheet-rows));
 }
 
-/* ── Bottom chrome (time + nav) ── */
+.weapon-icon.weapon-icon-sm {
+  --weapon-icon-size: 36px;
+}
+
+.weapon-icon.idx-0 { background-position: 0% 0%; }
+.weapon-icon.idx-1 { background-position: 50% 0%; }
+.weapon-icon.idx-2 { background-position: 100% 0%; }
+.weapon-icon.idx-3 { background-position: 0% 50%; }
+.weapon-icon.idx-4 { background-position: 50% 50%; }
+.weapon-icon.idx-5 { background-position: 100% 50%; }
+.weapon-icon.idx-6 { background-position: 0% 100%; }
+.weapon-icon.idx-7 { background-position: 50% 100%; }
+.weapon-icon.idx-8 { background-position: 100% 100%; }
+
+.loadout-row,
+.shop-weapon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shop-weapon-row {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--bg-dark);
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-on-dark);
+  font-family: inherit;
+}
+
+.shop-weapon-row:active {
+  background: var(--bg-dark-hover);
+}
+
+.shop-weapon-row .action-row-body {
+  flex: 1;
+}
+
+/* ── Weapon icons ── */
 #bottom-chrome {
   flex-shrink: 0;
   z-index: 60;
@@ -377,9 +586,19 @@ html, body {
 }
 
 .nav-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   line-height: 1;
-  opacity: 0.55;
+  opacity: 0.45;
+}
+
+.nav-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .nav-label {
@@ -393,6 +612,7 @@ html, body {
   background: rgba(42, 31, 24, 0.08);
 }
 .nav-btn.active .nav-icon { opacity: 1; }
+.nav-btn.active .nav-icon svg { stroke-width: 2; }
 
 /* ── List rows ── */
 .list-rows {
@@ -430,6 +650,10 @@ html, body {
   margin-top: 3px;
 }
 
+.list-row-role.gang-longshoremen { color: var(--gang-longshoremen); font-weight: 600; }
+.list-row-role.gang-factory-boys { color: var(--gang-factory-boys); font-weight: 600; }
+.list-row-role.gang-oakwood-crew { color: var(--gang-oakwood-crew); font-weight: 600; }
+.list-row-role.gang-riverside-syndicate { color: var(--gang-riverside-syndicate); font-weight: 600; }
 .list-row-role.gang-a { color: var(--gang-a); font-weight: 600; }
 .list-row-role.gang-b { color: var(--gang-b); font-weight: 600; }
 
@@ -504,6 +728,10 @@ html, body {
   margin-top: 4px;
 }
 
+.tag-gang-longshoremen { background: rgba(30,95,138,0.14); color: #1e5f8a; }
+.tag-gang-factory-boys { background: rgba(196,92,38,0.14); color: #a34a1a; }
+.tag-gang-oakwood-crew { background: rgba(92,107,60,0.14); color: #4a562f; }
+.tag-gang-riverside-syndicate { background: rgba(109,40,217,0.15); color: #6d28d9; }
 .tag-gang-a { background: rgba(124,58,237,0.15); color: #6d28d9; }
 .tag-gang-b { background: rgba(185,28,28,0.12); color: #b91c1c; }
 .tag-hustler { background: rgba(180,83,9,0.12); color: var(--caution); }
@@ -718,6 +946,41 @@ html, body {
   padding: 12px 16px 6px;
 }
 
+.location-details {
+  padding: 0 16px 8px;
+}
+
+.location-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(42, 31, 24, 0.08);
+}
+
+.location-detail-row:last-child {
+  border-bottom: none;
+}
+
+.location-detail-label {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.location-sheet-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-sheet-footer .btn-primary:not(.hidden) + .btn-secondary {
+  margin-top: 0;
+}
+
 .dialogue-box {
   background: var(--bg-dark);
   border: none;
@@ -930,13 +1193,27 @@ html, body {
 .filter-bar {
   display: flex;
   gap: 6px;
-  margin-top: 10px;
   overflow-x: auto;
   padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.people-filter-bar {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  overflow-x: visible;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  row-gap: 6px;
 }
 
 .filter-btn {
-  padding: 5px 12px;
+  padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: none;
@@ -964,7 +1241,18 @@ html, body {
   flex-shrink: 0;
 }
 
-.menu-list { list-style: none; padding: 8px 16px 16px; }
+.settings-brand {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px 16px 20px;
+}
+
+.settings-page .section-block {
+  padding-top: 0;
+}
 
 .menu-divider {
   height: 1px;
