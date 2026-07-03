@@ -1,24 +1,12 @@
-function getCharacterLocation(character, hour) {
-  for (const slot of character.schedule) {
-    if (LOCATIONS[slot.locationId]?.type === 'home') continue;
-    const { fromHour, toHour } = slot;
-    if (fromHour < toHour) {
-      if (hour >= fromHour && hour < toHour) return slot.locationId;
-    } else {
-      if (hour >= fromHour || hour < toHour) return slot.locationId;
-    }
-  }
-  return null;
+function getCharacterLocation(character) {
+  return character.currentLocation || null;
 }
 
 function getCharactersAtLocation(locationId) {
-  const state = getState();
-  const hour = state.clock.hour;
   const present = [];
 
-  for (const char of Object.values(state.characters)) {
-    const loc = getCharacterLocation(char, hour);
-    if (loc === locationId) {
+  for (const char of Object.values(getState().characters)) {
+    if (getCharacterLocation(char) === locationId) {
       present.push(char);
     }
   }
@@ -42,7 +30,8 @@ function calculateTravelMinutes(fromId, toId) {
   const vehicleBonus = state.player.vehicle
     ? state.vehicles[state.player.vehicle]?.travelBonus || 0
     : 0;
-  return Math.max(5, Math.round(baseMinutes * (1 - vehicleBonus)));
+  const minutes = Math.max(5, Math.round(baseMinutes * (1 - vehicleBonus)));
+  return Math.max(1, Math.round(minutes / 10));
 }
 
 function getTurfZones() {
@@ -51,7 +40,6 @@ function getTurfZones() {
 
 function checkTraversalShakedown(fromId, toId) {
   const state = getState();
-  const hour = state.clock.hour;
 
   const pathTurf = new Set();
   const from = LOCATIONS[fromId];
@@ -65,7 +53,7 @@ function checkTraversalShakedown(fromId, toId) {
     const gangMembers = Object.values(state.characters).filter(c => {
       if (c.gangAffiliation !== turf) return false;
       if (c.relationshipToPlayer !== 'grudge') return false;
-      const loc = getCharacterLocation(c, hour);
+      const loc = getCharacterLocation(c);
       if (!loc) return false;
       const locData = LOCATIONS[loc];
       return locData?.turf === turf || locData?.type === 'gang';

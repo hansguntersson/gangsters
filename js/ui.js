@@ -1,6 +1,7 @@
 let callbacks = {};
 let currentTab = 'map';
-let peopleFilter = 'crew';
+const PEOPLE_FILTERS = ['crew', 'associates', 'rivals', 'law', 'contacts'];
+let peopleFilter = 'all';
 let showGangTurf = false;
 let travelTotalMinutes = 0;
 
@@ -85,9 +86,7 @@ function renderTimeControls() {
 
 function bindStaticEvents() {
   document.getElementById('location-leave').addEventListener('click', closeLocationPanel);
-  document.getElementById('location-back').addEventListener('click', closeLocationPanel);
   document.getElementById('character-leave').addEventListener('click', closeCharacterPanel);
-  document.getElementById('character-back').addEventListener('click', closeCharacterPanel);
   document.getElementById('job-decline').addEventListener('click', closeJobPanel);
   document.getElementById('job-back').addEventListener('click', closeJobPanel);
 
@@ -111,9 +110,7 @@ function bindStaticEvents() {
   document.querySelectorAll('#people-filters .filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       peopleFilter = btn.dataset.filter;
-      document.querySelectorAll('#people-filters .filter-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.filter === peopleFilter);
-      });
+      syncPeopleFilterButtons();
       renderPeopleTab();
     });
   });
@@ -129,6 +126,14 @@ function bindStaticEvents() {
   }
 }
 
+function syncPeopleFilterButtons() {
+  document.querySelectorAll('#people-filters .filter-btn').forEach(btn => {
+    const on = btn.dataset.filter === peopleFilter;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
 function renderAll() {
   renderStatusBar();
   renderTimeControls();
@@ -141,8 +146,25 @@ function renderAll() {
 }
 
 function renderStatusBar() {
+  const state = getState();
   document.getElementById('time-display').textContent = formatTime();
-  document.getElementById('cash-display').textContent = `$${getState().player.cash}`;
+  document.getElementById('cash-display').textContent = `$${state.player.cash}`;
+
+  const injuryEl = document.getElementById('injury-indicator');
+  if (!injuryEl) return;
+
+  const injured = state.player.injury.injured;
+  injuryEl.classList.toggle('hidden', !injured);
+  injuryEl.setAttribute('aria-hidden', injured ? 'false' : 'true');
+  if (injured) {
+    const hrs = Math.ceil(state.player.injury.recoveryHoursRemaining);
+    const label = `Injured — ${hrs}h until you can move`;
+    injuryEl.title = label;
+    injuryEl.setAttribute('aria-label', label);
+  } else {
+    injuryEl.removeAttribute('title');
+    injuryEl.removeAttribute('aria-label');
+  }
 }
 
 function updateFooterCash() {
@@ -273,13 +295,9 @@ function getPeopleCategory(char, state) {
     const grudges = state.gangGrudgeCount?.[char.gangAffiliation] || 0;
     if (grudges >= 2) return 'rivals';
   }
-  if (char.relationshipToPlayer === 'friendly') return 'contacts';
+  if (char.gangAffiliation && char.relationshipToPlayer === 'friendly') return 'associates';
   if (char.type === 'civilian' && !char.isBusinessOwner) return 'law';
-  return 'other';
-}
-
-function matchesPeopleFilter(char, state, filter) {
-  return getPeopleCategory(char, state) === filter;
+  return 'contacts';
 }
 
 function renderPeopleTab() {
@@ -289,36 +307,33 @@ function renderPeopleTab() {
     .map(id => state.characters[id])
     .filter(Boolean);
 
-  const filtered = roster.filter(c => matchesPeopleFilter(c, state, peopleFilter));
-
   if (roster.length === 0) {
     el.innerHTML = '<p class="stub-notice">Nobody on your radar yet. Hit the map and make contacts.</p>';
     return;
   }
 
+  const filtered = peopleFilter === 'all'
+    ? PEOPLE_FILTERS.flatMap(cat => roster.filter(c => getPeopleCategory(c, state) === cat))
+    : roster.filter(c => getPeopleCategory(c, state) === peopleFilter);
+
   if (filtered.length === 0) {
-    const emptyMessages = {
-      crew: 'No crew yet. Hiring comes later.',
-      contacts: 'No contacts yet. Build relationships on the map.',
-      rivals: 'Nobody gunning for you. For now.',
-      law: 'No lawmen on your radar.',
-      other: 'Nobody else on your radar.',
-    };
-    el.innerHTML = `<p class="stub-notice">${emptyMessages[peopleFilter] || emptyMessages.other}</p>`;
+    el.innerHTML = '<p class="stub-notice">Nobody in this category yet.</p>';
     return;
   }
 
-  const sectionTitles = {
+  const sectionLabels = {
+    all: 'Everyone',
     crew: 'Crew',
-    contacts: 'Contacts',
+    associates: 'Associates',
     rivals: 'Rivals',
-    law: 'Lawmen',
-    other: 'Other',
+    law: 'The Law',
+    contacts: 'Other contacts',
   };
 
-  let html = `<div class="section-block"><h3>${sectionTitles[peopleFilter]}</h3><ul class="list-rows">`;
-  filtered.forEach(c => { html += renderListRowHTML(c); });
-  html += '</ul></div>';
+  let html = `<p class="people-list-label">${sectionLabels[peopleFilter] || 'People'}</p>`;
+  html += '<ul class="list-rows people-list-rows">';
+  filtered.forEach(c => { html += renderPeopleListRowHTML(c); });
+  html += '</ul>';
   el.innerHTML = html;
   bindListRows(el);
 }
@@ -437,6 +452,39 @@ function formatRelationshipWord(rel) {
   return 'Neutral';
 }
 
+function relationshipStatusHTML(rel) {
+  const word = formatRelationshipWord(rel);
+  const cls = rel || 'neutral';
+  let icon = '';
+  if (rel === 'friendly') {
+    icon = `<span class="status-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12h2l1.5-2 2 4 2-3 1.5 1H17"/><path d="M5 12v5a1 1 0 0 0 1 1h2"/><path d="M19 12v5a1 1 0 0 1-1 1h-2"/><path d="M9 18h6"/></svg></span>`;
+  }
+  return `<span class="status-word ${cls}">${icon}${word}</span>`;
+}
+
+function renderPeopleListRowHTML(char) {
+  const role = getCharacterRoleLabel(char);
+  const gang = getGangLabel(char);
+  let roleLine = role;
+  let roleCls = '';
+  if (gang) {
+    roleLine = `${role} · ${gang.text}`;
+    roleCls = turfZoneClass(char.gangAffiliation);
+  }
+  return `
+    <li class="list-row people-list-row" data-character="${char.id}">
+      <div class="people-list-portrait">
+        ${portraitHTML(char, 'portrait-people')}
+      </div>
+      <div class="list-row-info">
+        <div class="list-row-name">${char.name}</div>
+        <div class="list-row-role ${roleCls}">${roleLine}</div>
+        ${relationshipStatusHTML(char.relationshipToPlayer)}
+      </div>
+      <span class="list-row-chevron" aria-hidden="true">›</span>
+    </li>`;
+}
+
 function renderListRowHTML(char) {
   const role = getCharacterRoleLabel(char);
   const gang = getGangLabel(char);
@@ -454,6 +502,7 @@ function renderListRowHTML(char) {
         <div class="list-row-name">${char.name}</div>
         <div class="list-row-role ${roleCls}">${roleLine}</div>
         <span class="status-word ${relCls}">${formatRelationshipWord(char.relationshipToPlayer)}</span>
+        ${formatNpcSightingHTML(char.id)}
       </div>
       <span class="list-row-chevron">›</span>
     </li>`;
@@ -546,22 +595,18 @@ function closeEncounterModal() {
   setInteractionPaused(false);
 }
 
-function getLocationSubtitle(loc, isHere) {
-  if (isHere) return `${formatTime()} · You're here`;
-  if (loc.type === 'intersection') return `${formatTime()} · Street corner`;
-  return formatTime();
-}
-
-function getLocationDetailHTML(loc) {
-  const rows = [];
-  if (loc.category) rows.push(['Type', loc.category]);
-  else if (loc.type && loc.type !== 'building') rows.push(['Type', loc.type]);
-  if (loc.block) rows.push(['Block', loc.block]);
-  if (loc.turf) rows.push(['Turf', getGangName(loc.turf)]);
-  if (rows.length === 0) return '';
-  return rows.map(([label, value]) =>
-    `<div class="location-detail-row"><span class="location-detail-label">${label}</span><span>${value}</span></div>`
-  ).join('');
+function renderUsuallyHereRowHTML(char) {
+  const role = getCharacterRoleLabel(char);
+  const gang = getGangLabel(char);
+  const roleLine = gang ? `${role} · ${gang.text}` : role;
+  return `
+    <li class="list-row list-row-static">
+      ${portraitHTML(char)}
+      <div class="list-row-info">
+        <div class="list-row-name">${char.name}</div>
+        <div class="list-row-sub">${roleLine}</div>
+      </div>
+    </li>`;
 }
 
 function openLocationPanel(locationId) {
@@ -573,26 +618,31 @@ function openLocationPanel(locationId) {
   switchTab('map');
 
   const isHere = locationId === state.player.position;
+  const panel = document.getElementById('location-panel');
+  panel.classList.toggle('location-panel--here', isHere);
+  panel.classList.toggle('location-panel--remote', !isHere);
 
-  document.getElementById('location-name').textContent = loc.name.toUpperCase();
-  document.getElementById('location-time').textContent = getLocationSubtitle(loc, isHere);
-  document.getElementById('location-details').innerHTML = getLocationDetailHTML(loc);
-  document.getElementById('location-people-label').textContent = isHere ? 'People here' : 'Around right now';
-
-  const chars = getCharactersAtLocation(locationId);
-  const list = document.getElementById('location-characters');
-
-  if (chars.length === 0) {
-    list.innerHTML = '<li class="list-row" style="cursor:default"><div class="list-row-info"><div class="list-row-sub">Nobody around.</div></div></li>';
-  } else {
-    list.innerHTML = chars.map(c => renderListRowHTML(c)).join('');
-    bindListRows(list);
+  if (isHere) {
+    observeNpcSightingsAtLocation(locationId);
   }
 
+  document.getElementById('location-name').textContent = loc.name.toUpperCase();
+
+  const list = document.getElementById('location-characters');
   const actions = document.getElementById('location-actions');
   actions.innerHTML = '';
 
   if (isHere) {
+    document.getElementById('location-people-label').textContent = 'People here';
+
+    const chars = getCharactersAtLocation(locationId);
+    if (chars.length === 0) {
+      list.innerHTML = '<li class="list-row list-row-static"><div class="list-row-info"><div class="list-row-sub">Nobody around.</div></div></li>';
+    } else {
+      list.innerHTML = chars.map(c => renderListRowHTML(c)).join('');
+      bindListRows(list);
+    }
+
     const agreement = state.extortionAgreements.find(a => a.businessId === locationId);
     if (agreement) {
       const status = getExtortionStatus(agreement);
@@ -635,6 +685,15 @@ function openLocationPanel(locationId) {
         if (result.injured) closeLocationPanel();
       });
     }
+  } else {
+    document.getElementById('location-people-label').textContent = 'Usually here';
+
+    const usual = getKnownCharactersUsuallyAtLocation(locationId);
+    if (usual.length === 0) {
+      list.innerHTML = '<li class="list-row list-row-static"><div class="list-row-info"><div class="list-row-sub">Nobody you know well enough to say.</div></div></li>';
+    } else {
+      list.innerHTML = usual.map(c => renderUsuallyHereRowHTML(c)).join('');
+    }
   }
 
   const travelBtn = document.getElementById('location-travel');
@@ -644,8 +703,9 @@ function openLocationPanel(locationId) {
   if (isHere) {
     travelBtn.classList.add('hidden');
     travelBtn.onclick = null;
-    leaveBtn.classList.add('hidden');
-    footer.classList.add('hidden');
+    leaveBtn.textContent = 'Close';
+    leaveBtn.classList.remove('hidden');
+    footer.classList.remove('hidden');
   } else {
     footer.classList.remove('hidden');
     leaveBtn.textContent = 'Close';
@@ -653,7 +713,7 @@ function openLocationPanel(locationId) {
     if (canPlayerMove()) {
       const minutes = calculateTravelMinutes(state.player.position, locationId);
       const risk = getTravelRiskWarning(state.player.position, locationId);
-      travelBtn.textContent = risk ? `Travel here (${minutes} min) · Risky` : `Travel here (${minutes} min)`;
+      travelBtn.textContent = risk ? `Travel (${minutes} min) · Risky` : `Travel (${minutes} min)`;
       travelBtn.classList.remove('hidden');
       travelBtn.onclick = () => {
         closeLocationPanel();
@@ -694,6 +754,7 @@ function openCharacterPanel(characterId) {
   const relEl = document.getElementById('character-relationship');
   relEl.textContent = `Relationship: ${formatRelationshipWord(char.relationshipToPlayer)}`;
   relEl.className = `status-word ${char.relationshipToPlayer}`;
+  document.getElementById('character-sightings').innerHTML = formatNpcSightingHTML(characterId);
   document.getElementById('character-dialogue').textContent = getDialogue(char);
 
   const actions = document.getElementById('character-actions');

@@ -9,13 +9,20 @@
 <body>
   <div id="app">
     <header id="app-header">
+      <button id="menu-btn" class="icon-btn" aria-label="Settings" aria-haspopup="true">☰</button>
       <div id="clock-block">
         <span id="time-display">MON 6:00 AM</span>
       </div>
       <div id="cash-block">
+        <span id="injury-indicator" class="header-injury-icon hidden" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="8" width="8" height="8" rx="1" transform="rotate(45 12 12)"/>
+            <path d="M12 10v4"/>
+            <path d="M10 12h4"/>
+          </svg>
+        </span>
         <span id="cash-display">$25</span>
       </div>
-      <button id="menu-btn" class="icon-btn" aria-label="Settings" aria-haspopup="true">☰</button>
     </header>
 
     <main id="main-content">
@@ -37,16 +44,23 @@
       </div>
 
       <div id="tab-people" class="tab-view">
-        <div class="tab-header">
-          <h2>People</h2>
-          <p class="tab-subtitle">Contacts &amp; crew</p>
+        <div class="people-hero">
+          <div class="people-hero-main">
+            <img class="people-hero-icon" src="images/people.png" alt="" aria-hidden="true" draggable="false">
+            <div class="people-hero-text">
+              <h2>People</h2>
+              <p class="people-hero-subtitle">Contacts &amp; crew</p>
+            </div>
+          </div>
+          <img class="people-hero-skyline" src="images/skyline.png" alt="" aria-hidden="true" draggable="false">
         </div>
         <div id="people-filters" class="filter-bar people-filter-bar" role="tablist" aria-label="Filter people">
-          <button type="button" class="filter-btn active" data-filter="crew">Crew</button>
-          <button type="button" class="filter-btn" data-filter="contacts">Contacts</button>
-          <button type="button" class="filter-btn" data-filter="rivals">Rivals</button>
-          <button type="button" class="filter-btn" data-filter="law">Lawmen</button>
-          <button type="button" class="filter-btn" data-filter="other">Other</button>
+          <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" class="filter-btn" data-filter="crew" aria-pressed="false">Crew</button>
+          <button type="button" class="filter-btn" data-filter="associates" aria-pressed="false">Associates</button>
+          <button type="button" class="filter-btn" data-filter="rivals" aria-pressed="false">Rivals</button>
+          <button type="button" class="filter-btn" data-filter="law" aria-pressed="false">The Law</button>
+          <button type="button" class="filter-btn" data-filter="contacts" aria-pressed="false">Other contacts</button>
         </div>
         <div id="people-content" class="tab-scroll"></div>
       </div>
@@ -173,18 +187,17 @@
     </div>
 
     <!-- Location -->
-    <div id="location-panel" class="modal-sheet hidden">
-      <div class="sheet-header">
-        <button class="sheet-back" id="location-back">←</button>
+    <div id="location-panel" class="modal-sheet location-sheet hidden">
+      <div class="sheet-header location-sheet-header">
         <h2 id="location-name">LOCATION</h2>
       </div>
-      <p class="sheet-meta" id="location-time"></p>
-      <div id="location-details" class="location-details"></div>
-      <p class="panel-label" id="location-people-label">People here</p>
-      <ul id="location-characters" class="list-rows"></ul>
-      <div id="location-actions"></div>
+      <div class="location-sheet-body">
+        <p class="panel-label" id="location-people-label">People here</p>
+        <ul id="location-characters" class="list-rows"></ul>
+        <div id="location-actions"></div>
+      </div>
       <div class="sheet-footer location-sheet-footer">
-        <button class="btn btn-primary hidden" id="location-travel">Travel here</button>
+        <button class="btn btn-primary hidden" id="location-travel">Travel</button>
         <button class="btn btn-secondary" id="location-leave">Close</button>
       </div>
     </div>
@@ -192,7 +205,6 @@
     <!-- Character -->
     <div id="character-panel" class="modal-sheet hidden">
       <div class="sheet-header sheet-header-minimal">
-        <button class="sheet-back" id="character-back">←</button>
         <h2 id="character-sheet-title" class="sheet-header-title"></h2>
       </div>
       <div class="character-hero">
@@ -204,6 +216,7 @@
           <span id="character-role" class="tag"></span>
         </div>
         <span id="character-relationship" class="status-word"></span>
+        <div id="character-sightings" class="character-sightings"></div>
       </div>
       <div class="dialogue-box" id="character-dialogue"></div>
       <p class="actions-label">What do you do?</p>
@@ -241,6 +254,7 @@
   <script src="js/map-locations-data.js"></script>
   <script src="js/city-grid.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/npc-locations.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/world.js"></script>
   <script src="js/actions.js"></script>

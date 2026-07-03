@@ -65,6 +65,7 @@ function startTravel(targetId, skipShakedownCheck = false) {
   state.player.inTransit = false;
   state.player.transitTarget = null;
 
+  observeNpcSightingsAtLocation(targetId);
   saveGame();
   renderAll();
   centerMapOnPlayer();
@@ -82,6 +83,7 @@ function handleResetGame() {
   resetGame();
   closeAllPanels();
   switchTab('map');
+  applyDefaultMapZoom();
   centerMapOnPlayer();
   renderAll();
 }

@@ -8,6 +8,7 @@ function initEngine(callbacks = {}) {
   const saved = loadGame();
   state = saved || createInitialState();
   migrateSaveState();
+  initNpcLocationState();
   return state;
 }
 
@@ -31,7 +32,13 @@ function migrateSaveState() {
   if (!state.heardRumorsFrom) {
     state.heardRumorsFrom = [];
   }
+  if (!state.npcSightingLogs) {
+    state.npcSightingLogs = {};
+  }
   state.knownLocations = state.knownLocations.filter(id => LOCATIONS[id]?.type !== 'intersection');
+  for (const c of Object.values(state.characters)) {
+    syncNpcLocationData(c);
+  }
   for (const [id, c] of Object.entries(state.characters)) {
     if (!c.portrait && typeof PORTRAIT_MAP !== 'undefined' && PORTRAIT_MAP[id]) {
       c.portrait = PORTRAIT_MAP[id];
@@ -64,9 +71,6 @@ function migrateSaveState() {
     }
     if (CHARACTERS[c.id]?.gangAffiliation) {
       c.gangAffiliation = CHARACTERS[c.id].gangAffiliation;
-    }
-    for (const slot of c.schedule || []) {
-      slot.locationId = migrateLocationId(slot.locationId);
     }
   }
 
@@ -154,6 +158,7 @@ function loadGame() {
 
 function resetGame() {
   state = createInitialState();
+  initNpcLocationState();
   saveGame();
   onStateChange();
   return state;
@@ -239,6 +244,7 @@ function getTotalHours() {
 }
 
 function advanceClock(minutes) {
+  const prevDay = state.clock.day;
   let { day, hour, minute } = state.clock;
   minute += minutes;
 
@@ -252,6 +258,10 @@ function advanceClock(minutes) {
   }
 
   state.clock = { day, hour, minute };
+
+  if (state.clock.day > prevDay) {
+    rollAllNpcLocations();
+  }
 
   if (state.player.injury.injured && state.player.injury.recoveryHoursRemaining > 0) {
     const hoursPassed = minutes / 60;

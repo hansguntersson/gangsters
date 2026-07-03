@@ -34,13 +34,31 @@ var PORTRAIT_MAP = {
   tom:           { sheet: 3, index: 5 },
 };
 
+function npcTable(primaryLocationId, primaryWeight = 0.9, randomWeight = 0.1) {
+  return {
+    fixed: [{ locationId: primaryLocationId, weight: primaryWeight }],
+    randomWeight,
+    randomPool: 'neutral_and_home_turf',
+  };
+}
+
+function npcTableMulti(fixedEntries, randomWeight = 0.05) {
+  return {
+    fixed: fixedEntries,
+    randomWeight,
+    randomPool: 'neutral_and_home_turf',
+  };
+}
+
 function char(id, name, type, opts = {}) {
   return {
     id,
     name,
     type,
+    role: opts.role || type,
     gangAffiliation: opts.gang || null,
-    schedule: opts.schedule || [],
+    homeTurfId: opts.homeTurfId ?? opts.gang ?? null,
+    locationTable: opts.locationTable || null,
     traits: opts.traits || {
       brainy_brawny: 0,
       indulgent_spartan: 0,
@@ -69,11 +87,11 @@ var CHARACTERS = {
   // The Longshoremen (waterfront)
   frank: char('frank', 'Frank O\'Malley', 'gang_member', {
     gang: 'longshoremen',
-    schedule: [
-      { fromHour: 6, toHour: 14, locationId: 'l030' },
-      { fromHour: 14, toHour: 22, locationId: 'l017' },
-      { fromHour: 22, toHour: 6, locationId: 'l030' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l030', weight: 0.55 },
+      { locationId: 'l017', weight: 0.4 },
+    ]),
     traits: { brainy_brawny: 2, intimidating_diplomatic: -2 },
     jobsOffered: ['delivery_longshore'],
     dialogue: {
@@ -84,10 +102,11 @@ var CHARACTERS = {
   }),
   rico: char('rico', 'Rico Santos', 'gang_member', {
     gang: 'longshoremen',
-    schedule: [
-      { fromHour: 8, toHour: 20, locationId: 'l030' },
-      { fromHour: 20, toHour: 8, locationId: 'l040' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l030', weight: 0.7 },
+      { locationId: 'l040', weight: 0.25 },
+    ]),
     traits: { brainy_brawny: 1, restless_reliable: 1 },
     dialogue: {
       neutral: ['What do you need?', 'Keep moving.'],
@@ -97,10 +116,11 @@ var CHARACTERS = {
   }),
   jimmy: char('jimmy', 'Jimmy Doyle', 'gang_member', {
     gang: 'longshoremen',
-    schedule: [
-      { fromHour: 12, toHour: 22, locationId: 'l014' },
-      { fromHour: 22, toHour: 12, locationId: 'l030' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l014', weight: 0.55 },
+      { locationId: 'l030', weight: 0.4 },
+    ]),
     traits: { brainy_brawny: 0, ambitious_complacent: -1 },
     dialogue: {
       neutral: ['Yeah?', 'What?'],
@@ -112,11 +132,11 @@ var CHARACTERS = {
   // Factory Boys
   tony: char('tony', 'Tony Russo', 'gang_member', {
     gang: 'factory_boys',
-    schedule: [
-      { fromHour: 6, toHour: 14, locationId: 'l031' },
-      { fromHour: 14, toHour: 22, locationId: 'l033' },
-      { fromHour: 22, toHour: 6, locationId: 'l031' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l031', weight: 0.6 },
+      { locationId: 'l033', weight: 0.35 },
+    ]),
     traits: { brainy_brawny: 2, intimidating_diplomatic: -2 },
     jobsOffered: ['delivery_factory'],
     dialogue: {
@@ -127,10 +147,11 @@ var CHARACTERS = {
   }),
   vinny: char('vinny', 'Vinny Costa', 'gang_member', {
     gang: 'factory_boys',
-    schedule: [
-      { fromHour: 8, toHour: 20, locationId: 'l031' },
-      { fromHour: 20, toHour: 8, locationId: 'l033' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l031', weight: 0.7 },
+      { locationId: 'l033', weight: 0.25 },
+    ]),
     traits: { brainy_brawny: 1, loyal_opportunistic: -1 },
     dialogue: {
       neutral: ['Yeah?', 'Make it quick.'],
@@ -140,11 +161,12 @@ var CHARACTERS = {
   }),
   marco: char('marco', 'Marco Bellini', 'gang_member', {
     gang: 'factory_boys',
-    schedule: [
-      { fromHour: 10, toHour: 18, locationId: 'l024' },
-      { fromHour: 18, toHour: 4, locationId: 'l031' },
-      { fromHour: 4, toHour: 10, locationId: 'l004' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l031', weight: 0.45 },
+      { locationId: 'l024', weight: 0.3 },
+      { locationId: 'l004', weight: 0.2 },
+    ]),
     traits: { brainy_brawny: 1, social_discreet: 1 },
     dialogue: {
       neutral: ['What?', 'Busy.'],
@@ -156,11 +178,11 @@ var CHARACTERS = {
   // Riverside Syndicate
   pete: char('pete', 'Pete the Fence', 'hustler', {
     gang: 'riverside_syndicate',
-    schedule: [
-      { fromHour: 14, toHour: 22, locationId: 'l003' },
-      { fromHour: 22, toHour: 6, locationId: 'l003' },
-      { fromHour: 6, toHour: 14, locationId: 'l014' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l003', weight: 0.65 },
+      { locationId: 'l014', weight: 0.3 },
+    ]),
     traits: { brainy_brawny: 0, social_discreet: 2 },
     sellsWeapons: true,
     dialogue: {
@@ -173,11 +195,11 @@ var CHARACTERS = {
   // Oakwood Crew
   mickey: char('mickey', 'Mickey D', 'hustler', {
     gang: 'oakwood_crew',
-    schedule: [
-      { fromHour: 6, toHour: 12, locationId: 'l010' },
-      { fromHour: 12, toHour: 20, locationId: 'l048' },
-      { fromHour: 20, toHour: 6, locationId: 'l048' },
-    ],
+    role: 'crew',
+    locationTable: npcTableMulti([
+      { locationId: 'l048', weight: 0.55 },
+      { locationId: 'l010', weight: 0.4 },
+    ]),
     traits: { brainy_brawny: -1, restless_reliable: 1 },
     jobsOffered: ['hijack_1', 'hijack_2'],
     revealsLocations: ['l014', 'l033'],
@@ -189,11 +211,12 @@ var CHARACTERS = {
   }),
   eddie: char('eddie', 'Eddie Shaw', 'hustler', {
     gang: 'oakwood_crew',
-    schedule: [
-      { fromHour: 8, toHour: 18, locationId: 'l010' },
-      { fromHour: 18, toHour: 4, locationId: 'l048' },
-      { fromHour: 4, toHour: 8, locationId: 'l047' },
-    ],
+    role: 'associate',
+    locationTable: npcTableMulti([
+      { locationId: 'l048', weight: 0.45 },
+      { locationId: 'l010', weight: 0.35 },
+      { locationId: 'l047', weight: 0.15 },
+    ]),
     traits: { brainy_brawny: 0, social_discreet: -1 },
     jobsOffered: ['hijack_3', 'delivery_h1'],
     revealsLocations: ['l010', 'l041'],
@@ -205,10 +228,11 @@ var CHARACTERS = {
   }),
   slim: char('slim', 'Slim Jenkins', 'dealer', {
     gang: 'oakwood_crew',
-    schedule: [
-      { fromHour: 20, toHour: 6, locationId: 'l048' },
-      { fromHour: 6, toHour: 20, locationId: 'l047' },
-    ],
+    role: 'associate',
+    locationTable: npcTableMulti([
+      { locationId: 'l048', weight: 0.55 },
+      { locationId: 'l047', weight: 0.4 },
+    ]),
     traits: { brainy_brawny: -1, social_discreet: 2 },
     revealsLocations: ['l045', 'l046'],
     dialogue: {
@@ -220,10 +244,8 @@ var CHARACTERS = {
 
   // Business owners
   maria: char('maria', 'Maria Rossi', 'civilian', {
-    schedule: [
-      { fromHour: 6, toHour: 22, locationId: 'l010' },
-      { fromHour: 22, toHour: 6, locationId: 'l047' },
-    ],
+    role: 'storekeeper',
+    locationTable: npcTable('l010', 0.92),
     traits: { brainy_brawny: -2, intimidating_diplomatic: -2 },
     isBusinessOwner: true,
     dialogue: {
@@ -233,10 +255,8 @@ var CHARACTERS = {
     },
   }),
   sal: char('sal', 'Sal Moretti', 'civilian', {
-    schedule: [
-      { fromHour: 5, toHour: 21, locationId: 'l024' },
-      { fromHour: 21, toHour: 5, locationId: 'l047' },
-    ],
+    role: 'storekeeper',
+    locationTable: npcTable('l024', 0.95),
     traits: { brainy_brawny: -1, intimidating_diplomatic: -1 },
     isBusinessOwner: true,
     dialogue: {
@@ -248,10 +268,11 @@ var CHARACTERS = {
 
   // Civilians
   mrs_patterson: char('mrs_patterson', 'Mrs. Patterson', 'civilian', {
-    schedule: [
-      { fromHour: 8, toHour: 18, locationId: 'l001' },
-      { fromHour: 18, toHour: 8, locationId: 'l047' },
-    ],
+    role: 'law',
+    locationTable: npcTableMulti([
+      { locationId: 'l001', weight: 0.6 },
+      { locationId: 'l047', weight: 0.35 },
+    ]),
     traits: { brainy_brawny: -2, loyal_opportunistic: -1 },
     dialogue: {
       neutral: ['Good day.', 'Lovely weather.'],
@@ -260,10 +281,11 @@ var CHARACTERS = {
     },
   }),
   tom: char('tom', 'Tom the Clerk', 'civilian', {
-    schedule: [
-      { fromHour: 9, toHour: 17, locationId: 'l033' },
-      { fromHour: 17, toHour: 9, locationId: 'l047' },
-    ],
+    role: 'law',
+    locationTable: npcTableMulti([
+      { locationId: 'l033', weight: 0.65 },
+      { locationId: 'l047', weight: 0.3 },
+    ]),
     traits: { brainy_brawny: -1, ambitious_complacent: 1 },
     dialogue: {
       neutral: ['Excuse me.', 'Just passing through.'],
@@ -272,10 +294,11 @@ var CHARACTERS = {
     },
   }),
   old_joe: char('old_joe', 'Old Joe', 'civilian', {
-    schedule: [
-      { fromHour: 10, toHour: 16, locationId: 'l010' },
-      { fromHour: 16, toHour: 10, locationId: 'l047' },
-    ],
+    role: 'civilian',
+    locationTable: npcTableMulti([
+      { locationId: 'l010', weight: 0.55 },
+      { locationId: 'l047', weight: 0.4 },
+    ]),
     traits: { brainy_brawny: -2, indulgent_spartan: 1 },
     dialogue: {
       neutral: ['Hmm?', 'Young fella.'],
@@ -286,10 +309,9 @@ var CHARACTERS = {
 
   // Services
   gus: char('gus', 'Gus Kowalski', 'mechanic', {
-    schedule: [
-      { fromHour: 7, toHour: 19, locationId: 'l043' },
-      { fromHour: 19, toHour: 7, locationId: 'l047' },
-    ],
+    role: 'associate',
+    homeTurfId: 'oakwood_crew',
+    locationTable: npcTable('l043', 0.95),
     traits: { brainy_brawny: 1, loyal_opportunistic: 1 },
     sellsVehicles: true,
     revealsLocations: ['l044', 'l042'],
@@ -423,6 +445,7 @@ function createInitialState() {
     knownCharacters: getInitialKnownCharacters(),
     knownLocations: getInitialKnownLocations(),
     heardRumorsFrom: [],
+    npcSightingLogs: getInitialNpcSightingLogs(characters, getInitialKnownCharacters()),
     crew: [],
     pendingShakedown: null,
     gangGrudgeCount: {

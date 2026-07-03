@@ -1,5 +1,5 @@
 var mapViewport = {
-  scale: CONFIG.MAP_DEFAULT_ZOOM,
+  scale: 1,
   panX: 0,
   panY: 0,
   dragging: false,
@@ -14,6 +14,32 @@ var mapViewport = {
   initialized: false,
   lastDragAt: 0,
 };
+
+function getReferenceBlockWidth() {
+  const blockId = CONFIG.MAP_REFERENCE_BLOCK_ID || 'B3';
+  const block = typeof blockRect === 'function' ? blockRect(blockId) : null;
+  return block?.w || 243;
+}
+
+function getDefaultMapZoom() {
+  const container = document.getElementById('map-container');
+  if (!container || !container.clientWidth) return CONFIG.MAP_DEFAULT_ZOOM;
+  const zoom = container.clientWidth / getReferenceBlockWidth();
+  return Math.max(CONFIG.MAP_MIN_ZOOM, Math.min(CONFIG.MAP_MAX_ZOOM, zoom));
+}
+
+function applyDefaultMapZoom() {
+  mapViewport.scale = getDefaultMapZoom();
+}
+
+function centerMapOnPlayerPosition() {
+  const pos = LOCATIONS[getState().player.position];
+  centerMapOnPoint(
+    pos?.x || CONFIG.MAP_WIDTH / 2,
+    pos?.y || CONFIG.MAP_HEIGHT / 2,
+    false
+  );
+}
 
 function initMapViewport() {
   if (mapViewport.initialized) return;
@@ -36,12 +62,19 @@ function initMapViewport() {
         map.style.width = `${CONFIG.MAP_WIDTH}px`;
         map.style.height = `${CONFIG.MAP_HEIGHT}px`;
       }
-      centerMapOnPoint(
-        LOCATIONS[getState().player.position]?.x || CONFIG.MAP_WIDTH / 2,
-        LOCATIONS[getState().player.position]?.y || CONFIG.MAP_HEIGHT / 2,
-        false
-      );
+      applyDefaultMapZoom();
+      centerMapOnPlayerPosition();
     });
+  }
+
+  const setupView = () => {
+    applyDefaultMapZoom();
+    centerMapOnPlayerPosition();
+  };
+
+  setupView();
+  if (!container.clientWidth) {
+    requestAnimationFrame(setupView);
   }
 
   container.addEventListener('pointerdown', onMapPointerDown);
@@ -49,12 +82,6 @@ function initMapViewport() {
   container.addEventListener('pointerup', onMapPointerUp);
   container.addEventListener('pointercancel', onMapPointerUp);
   container.addEventListener('wheel', onMapWheel, { passive: false });
-
-  centerMapOnPoint(
-    LOCATIONS[getState().player.position]?.x || CONFIG.MAP_WIDTH / 2,
-    LOCATIONS[getState().player.position]?.y || CONFIG.MAP_HEIGHT / 2,
-    false
-  );
 }
 
 function applyMapTransform() {
