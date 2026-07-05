@@ -14,25 +14,36 @@ var LOCATION_ICON = {
 var LOCATIONS = buildAllLocations();
 
 var TURF_ZONES = buildTurfZones();
-// Portrait sprites: sheet 1–3, index 0–5 (3×2 grid, left-to-right, top-to-bottom)
+// Individual portrait images: images/portrait_N.png
 var PORTRAIT_MAP = {
-  mickey:        { sheet: 1, index: 0 },
-  tony:          { sheet: 1, index: 1 },
-  maria:         { sheet: 1, index: 2 },
-  vinny:         { sheet: 1, index: 3 },
-  marco:         { sheet: 1, index: 4 },
-  eddie:         { sheet: 1, index: 5 },
-  slim:          { sheet: 2, index: 0 },
-  rico:          { sheet: 2, index: 1 },
-  sal:           { sheet: 2, index: 3 },
-  mrs_patterson: { sheet: 2, index: 4 },
-  pete:          { sheet: 2, index: 5 },
-  jimmy:         { sheet: 3, index: 0 },
-  old_joe:       { sheet: 3, index: 1 },
-  gus:           { sheet: 3, index: 4 },
-  frank:         { sheet: 3, index: 3 },
-  tom:           { sheet: 3, index: 5 },
+  mickey:        'images/portrait_1.png',
+  tony:          'images/portrait_2.png',
+  maria:         'images/portrait_3.png',
+  vinny:         'images/portrait_4.png',
+  marco:         'images/portrait_5.png',
+  eddie:         'images/portrait_6.png',
+  slim:          'images/portrait_7.png',
+  rico:          'images/portrait_8.png',
+  sal:           'images/portrait_10.png',
+  mrs_patterson: 'images/portrait_11.png',
+  pete:          'images/portrait_12.png',
+  jimmy:         'images/portrait_13.png',
+  old_joe:       'images/portrait_14.png',
+  frank:         'images/portrait_16.png',
+  gus:           'images/portrait_17.png',
+  tom:           'images/portrait_18.png',
 };
+
+function migratePortraitRef(portrait, charId) {
+  if (!portrait) return PORTRAIT_MAP[charId] || null;
+  if (typeof portrait === 'string') return portrait;
+  if (portrait.src) return portrait.src;
+  if (portrait.sheet != null && portrait.index != null) {
+    const n = (portrait.sheet - 1) * 6 + portrait.index + 1;
+    return `images/portrait_${n}.png`;
+  }
+  return PORTRAIT_MAP[charId] || null;
+}
 
 function npcTable(primaryLocationId, primaryWeight = 0.9, randomWeight = 0.1) {
   return {

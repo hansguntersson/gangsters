@@ -24,7 +24,8 @@ function getReferenceBlockWidth() {
 function getDefaultMapZoom() {
   const container = document.getElementById('map-container');
   if (!container || !container.clientWidth) return CONFIG.MAP_DEFAULT_ZOOM;
-  const zoom = container.clientWidth / getReferenceBlockWidth();
+  const zoom = (container.clientWidth / getReferenceBlockWidth())
+    * (CONFIG.MAP_START_ZOOM_FACTOR ?? 1);
   return Math.max(CONFIG.MAP_MIN_ZOOM, Math.min(CONFIG.MAP_MAX_ZOOM, zoom));
 }
 

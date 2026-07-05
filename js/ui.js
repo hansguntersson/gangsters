@@ -20,22 +20,29 @@ function portraitFallbackStyle(charId) {
   return `background: linear-gradient(145deg, rgb(${hue[0]},${hue[1]},${hue[2]}) 0%, rgb(${hue[0]-12},${hue[1]-10},${hue[2]-8}) 100%)`;
 }
 
+function getPortraitImage(character) {
+  if (!character?.portrait) return null;
+  return migratePortraitRef(character.portrait, character.id);
+}
+
 function applyPortraitToElement(el, character, sizeClass) {
   if (!el || !character) return;
 
-  el.classList.remove('has-sprite', 'portrait-lg', 'portrait-hero', 'sheet-1', 'sheet-2', 'sheet-3',
-    'idx-0', 'idx-1', 'idx-2', 'idx-3', 'idx-4', 'idx-5');
-  el.style.backgroundImage = '';
-  el.style.backgroundPosition = '';
-  el.style.backgroundSize = '';
-
+  el.className = 'portrait';
   if (sizeClass) el.classList.add(sizeClass);
+  el.removeAttribute('style');
+  el.removeAttribute('src');
+  el.textContent = '';
 
-  if (character.portrait) {
-    const { sheet, index } = character.portrait;
-    el.classList.add('portrait', 'has-sprite', `sheet-${sheet}`, `idx-${index}`);
-    el.textContent = '';
-    el.removeAttribute('style');
+  const src = getPortraitImage(character);
+  if (src) {
+    el.classList.add('has-image');
+    if (el.tagName === 'IMG') {
+      el.src = src;
+      el.alt = '';
+    } else {
+      el.style.backgroundImage = `url('${src}')`;
+    }
     return;
   }
 
@@ -44,13 +51,12 @@ function applyPortraitToElement(el, character, sizeClass) {
 }
 
 function portraitHTML(character, sizeClass) {
-  if (character.portrait) {
-    const { sheet, index } = character.portrait;
-    const extra = sizeClass ? ` ${sizeClass}` : '';
-    return `<div class="portrait has-sprite sheet-${sheet} idx-${index}${extra}"></div>`;
+  const src = getPortraitImage(character);
+  const extra = sizeClass ? ` ${sizeClass}` : '';
+  if (src) {
+    return `<img class="portrait${extra}" src="${src}" alt="" draggable="false">`;
   }
   const style = portraitFallbackStyle(character.id);
-  const extra = sizeClass ? ` ${sizeClass}` : '';
   return `<div class="portrait${extra}" style="${style}">${getPortraitInitials(character.name)}</div>`;
 }
 
@@ -601,7 +607,7 @@ function renderUsuallyHereRowHTML(char) {
   const roleLine = gang ? `${role} · ${gang.text}` : role;
   return `
     <li class="list-row list-row-static">
-      ${portraitHTML(char)}
+      ${portraitHTML(char, 'portrait-location')}
       <div class="list-row-info">
         <div class="list-row-name">${char.name}</div>
         <div class="list-row-sub">${roleLine}</div>

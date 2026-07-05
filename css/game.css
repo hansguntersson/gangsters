@@ -37,6 +37,11 @@
   --weapon-icon-size: 48px;
   --weapon-sheet-cols: 3;
   --weapon-sheet-rows: 3;
+  --portrait-size: 60px;
+  --portrait-lg-size: 120px;
+  --portrait-hero-size: 140px;
+  --portrait-people-size: 128px;
+  --portrait-location-size: 96px;
 }
 
 html, body {
@@ -252,7 +257,7 @@ html, body {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  min-height: 104px;
+  min-height: 148px;
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(42, 31, 24, 0.08);
 }
@@ -263,18 +268,13 @@ html, body {
 
 .people-list-row .portrait-people,
 .portrait.portrait-people,
-.portrait-people.has-sprite {
-  width: 84px;
-  height: 84px;
+img.portrait.portrait-people {
+  width: var(--portrait-people-size);
+  height: var(--portrait-people-size);
   border-radius: 12px;
   border: 1px solid rgba(42, 31, 24, 0.16);
   box-shadow: 0 1px 4px rgba(42, 31, 24, 0.08);
   background-color: var(--bg-card);
-}
-
-.people-list-row .portrait-people.has-sprite {
-  background-size: 300% 200%;
-  image-rendering: auto;
 }
 
 .people-list-row .list-row-info {
@@ -784,8 +784,8 @@ html, body {
 .list-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 14px;
   margin-bottom: 8px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -832,15 +832,16 @@ html, body {
 }
 
 /* ── Portraits ── */
-.portrait {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
+.portrait,
+img.portrait {
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  border-radius: 8px;
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: rgba(255,255,255,0.85);
   flex-shrink: 0;
@@ -848,40 +849,43 @@ html, body {
   background-color: var(--bg-card);
 }
 
-.portrait.portrait-lg,
-.portrait-lg.portrait,
-.portrait-lg.has-sprite {
-  width: 96px;
-  height: 96px;
-  border-radius: 8px;
+img.portrait {
+  display: block;
+  object-fit: cover;
+  object-position: center top;
 }
 
-.portrait.portrait-hero,
-.portrait-hero.portrait,
-.portrait-hero.has-sprite {
-  width: 112px;
-  height: 112px;
-  border-radius: 10px;
-  border: 2px solid rgba(255,255,255,0.15);
-}
-
-.portrait.has-sprite {
+.portrait.has-image {
+  background-size: cover;
+  background-position: center top;
   background-repeat: no-repeat;
-  background-size: 300% 200%;
   color: transparent;
   font-size: 0;
 }
 
-.portrait.sheet-1 { background-image: url('../images/portraits-1.png'); }
-.portrait.sheet-2 { background-image: url('../images/portraits-2.png'); }
-.portrait.sheet-3 { background-image: url('../images/portraits-3.png'); }
+.portrait.portrait-lg,
+.portrait-lg.portrait,
+img.portrait.portrait-lg {
+  width: var(--portrait-lg-size);
+  height: var(--portrait-lg-size);
+  border-radius: 10px;
+}
 
-.portrait.idx-0 { background-position: 0% 0%; }
-.portrait.idx-1 { background-position: 50% 0%; }
-.portrait.idx-2 { background-position: 100% 0%; }
-.portrait.idx-3 { background-position: 0% 100%; }
-.portrait.idx-4 { background-position: 50% 100%; }
-.portrait.idx-5 { background-position: 100% 100%; }
+.portrait.portrait-hero,
+.portrait-hero.portrait,
+img.portrait.portrait-hero {
+  width: var(--portrait-hero-size);
+  height: var(--portrait-hero-size);
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+
+.portrait.portrait-location,
+img.portrait.portrait-location {
+  width: var(--portrait-location-size);
+  height: var(--portrait-location-size);
+  border-radius: 10px;
+}
 
 /* ── Tags ── */
 .tag {
@@ -1077,7 +1081,7 @@ html, body {
 
 .character-hero {
   background: var(--bg-dark);
-  padding: 20px 16px 24px;
+  padding: 24px 16px 28px;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
@@ -1176,6 +1180,8 @@ html, body {
 
 .location-panel--remote .list-row-static {
   cursor: default;
+  gap: 14px;
+  padding: 14px;
 }
 
 .location-panel--remote .list-row-static:active {

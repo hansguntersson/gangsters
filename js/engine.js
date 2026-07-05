@@ -40,9 +40,7 @@ function migrateSaveState() {
     syncNpcLocationData(c);
   }
   for (const [id, c] of Object.entries(state.characters)) {
-    if (!c.portrait && typeof PORTRAIT_MAP !== 'undefined' && PORTRAIT_MAP[id]) {
-      c.portrait = PORTRAIT_MAP[id];
-    }
+    c.portrait = migratePortraitRef(c.portrait, id);
   }
   const weaponIdMigration = { cosh: 'brass_knuckles', knife: 'switchblade', pistol: 'revolver' };
   if (state.player.weapon && weaponIdMigration[state.player.weapon]) {
